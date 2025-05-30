@@ -21,7 +21,8 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { addOrder, prepareOrderForFirestore } from "@/lib/firestore"
-import FirebaseStatus from "@/components/firebase-status"
+// Import the Firebase banner
+import FirebaseBanner from "@/components/firebase-banner"
 
 interface PuffItem {
   id: string
@@ -208,7 +209,10 @@ export default function PastryOrderSystem() {
         backgroundAttachment: "fixed",
       }}
     >
+      {/* Find the div that contains the main content (after the background style div)
+      Add the FirebaseBanner component at the top of the content */}
       <div className="max-w-4xl mx-auto flex-grow w-full">
+        <FirebaseBanner />
         {/* Main Order Form */}
         <Card className="bg-amber-50/95 backdrop-blur-sm border-amber-200">
           <CardHeader className="bg-amber-100/95 border-b border-amber-200">
@@ -644,23 +648,22 @@ export default function PastryOrderSystem() {
           </CardContent>
         </Card>
         {/* Firebase Status Component - Remove after testing */}
-        <FirebaseStatus />
       </div>
 
       {/* Navigation Footer - Always at bottom */}
       <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-sm mt-4 sm:mt-6 sticky bottom-0">
-        <div className="p-4 sm:p-6 flex justify-center">
-          <div className="flex flex-wrap gap-2 sm:gap-4">
+        <div className="p-4 sm:p-6 flex justify-center w-full">
+          <div className="flex flex-wrap gap-0 w-full justify-between">
             <Button
               variant="default"
-              className="flex items-center gap-2 text-xs sm:text-sm bg-amber-600 hover:bg-amber-700 text-white"
+              className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm bg-amber-600 hover:bg-amber-700 text-white rounded-none first:rounded-l-lg last:rounded-r-lg"
             >
               <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Order</span>
             </Button>
             <Button
               variant="outline"
-              className="flex items-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50"
+              className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
               onClick={() => router.push("/receipt")}
             >
               <Receipt className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -668,7 +671,7 @@ export default function PastryOrderSystem() {
             </Button>
             <Button
               variant="outline"
-              className="flex items-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50"
+              className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
               onClick={() => router.push("/history")}
             >
               <History className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -676,7 +679,7 @@ export default function PastryOrderSystem() {
             </Button>
             <Button
               variant="outline"
-              className="flex items-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50"
+              className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg last:rounded-r-lg"
               onClick={() => router.push("/trends")}
             >
               <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />

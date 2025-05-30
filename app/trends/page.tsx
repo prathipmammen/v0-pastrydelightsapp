@@ -344,11 +344,11 @@ export default function TrendsPage() {
 
       {/* Navigation Footer - Always at bottom */}
       <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-sm mt-4 sm:mt-6 sticky bottom-0">
-        <div className="p-4 sm:p-6 flex justify-center">
-          <div className="flex flex-wrap gap-2 sm:gap-4">
+        <div className="p-4 sm:p-6 flex justify-center w-full">
+          <div className="flex flex-wrap gap-0 w-full justify-between">
             <Button
               variant="outline"
-              className="flex items-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50"
+              className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg last:rounded-r-lg"
               onClick={() => router.push("/")}
             >
               <Plus className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -356,7 +356,7 @@ export default function TrendsPage() {
             </Button>
             <Button
               variant="outline"
-              className="flex items-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50"
+              className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
               onClick={() => router.push("/receipt")}
             >
               <Receipt className="w-3 h-3 sm:w-4 sm:h-4" />
@@ -364,16 +364,15 @@ export default function TrendsPage() {
             </Button>
             <Button
               variant="outline"
-              className="flex items-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50"
+              className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
               onClick={() => router.push("/history")}
             >
               <History className="w-3 h-3 sm:w-4 sm:h-4" />
-              <span className="hidden sm:inline">History ({orders.length})</span>
-              <span className="sm:hidden">({orders.length})</span>
+              <span className="hidden sm:inline">History</span>
             </Button>
             <Button
               variant="default"
-              className="flex items-center gap-2 text-xs sm:text-sm bg-amber-600 hover:bg-amber-700 text-white"
+              className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm bg-amber-600 hover:bg-amber-700 text-white rounded-none first:rounded-l-lg last:rounded-r-lg"
             >
               <TrendingUp className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">Trends</span>
