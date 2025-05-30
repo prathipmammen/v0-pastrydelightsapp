@@ -1,6 +1,6 @@
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useMemo } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
@@ -19,8 +19,12 @@ import {
   AlertCircle,
   Wifi,
   WifiOff,
+  ChevronLeft,
+  ChevronRight,
 } from "lucide-react"
 import { subscribeToOrders, deleteOrder, type FirestoreOrder, exportOrdersToCSV } from "@/lib/firestore"
+
+const ORDERS_PER_PAGE = 10
 
 export default function HistoryPage() {
   const router = useRouter()
@@ -32,6 +36,7 @@ export default function HistoryPage() {
   const [isConnected, setIsConnected] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
+  const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
     console.log("🔄 Setting up Firestore real-time listener...")
@@ -39,7 +44,13 @@ export default function HistoryPage() {
     const unsubscribe = subscribeToOrders(
       (firestoreOrders) => {
         console.log("📡 Received orders update:", firestoreOrders.length, "orders")
-        setOrders(firestoreOrders)
+        // Sort orders by creation date (newest first)
+        const sortedOrders = firestoreOrders.sort((a, b) => {
+          const dateA = new Date(a.createdAt).getTime()
+          const dateB = new Date(b.createdAt).getTime()
+          return dateB - dateA // Descending order (newest first)
+        })
+        setOrders(sortedOrders)
         setIsConnected(true)
         setError(null)
       },
@@ -57,14 +68,42 @@ export default function HistoryPage() {
     }
   }, [])
 
-  const filteredOrders = orders.filter((order) => {
-    const matchesCustomerName = order.customerName.toLowerCase().includes(customerNameFilter.toLowerCase())
-    const matchesContact = order.customerContact.toLowerCase().includes(contactFilter.toLowerCase())
-    const matchesReceiptId = order.receiptId.toLowerCase().includes(receiptIdFilter.toLowerCase())
-    const matchesPickupDate = pickupDateFilter === "" || order.deliveryDate === pickupDateFilter
+  // Filter orders based on search criteria
+  const filteredOrders = useMemo(() => {
+    return orders.filter((order) => {
+      const matchesCustomerName = order.customerName.toLowerCase().includes(customerNameFilter.toLowerCase())
+      const matchesContact = order.customerContact.toLowerCase().includes(contactFilter.toLowerCase())
+      const matchesReceiptId = order.receiptId.toLowerCase().includes(receiptIdFilter.toLowerCase())
+      const matchesPickupDate = pickupDateFilter === "" || order.deliveryDate === pickupDateFilter
 
-    return matchesCustomerName && matchesContact && matchesReceiptId && matchesPickupDate
-  })
+      return matchesCustomerName && matchesContact && matchesReceiptId && matchesPickupDate
+    })
+  }, [orders, customerNameFilter, contactFilter, receiptIdFilter, pickupDateFilter])
+
+  // Reset to page 1 when filters change
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [customerNameFilter, contactFilter, receiptIdFilter, pickupDateFilter])
+
+  // Calculate pagination
+  const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE)
+  const startIndex = (currentPage - 1) * ORDERS_PER_PAGE
+  const endIndex = startIndex + ORDERS_PER_PAGE
+  const currentPageOrders = filteredOrders.slice(startIndex, endIndex)
+
+  // Calculate statistics for current page
+  const currentPageStats = useMemo(() => {
+    const totalItems = currentPageOrders.reduce((sum, order) => sum + order.items.length, 0)
+    const totalRevenue = currentPageOrders.reduce((sum, order) => sum + order.finalTotal, 0)
+    return { totalItems, totalRevenue }
+  }, [currentPageOrders])
+
+  // Calculate statistics for all filtered orders
+  const allFilteredStats = useMemo(() => {
+    const totalItems = filteredOrders.reduce((sum, order) => sum + order.items.length, 0)
+    const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.finalTotal, 0)
+    return { totalItems, totalRevenue }
+  }, [filteredOrders])
 
   const handleViewReceipt = (order: FirestoreOrder) => {
     localStorage.setItem("currentOrder", JSON.stringify(order))
@@ -98,10 +137,39 @@ export default function HistoryPage() {
   }
 
   const handleExportToExcel = () => {
+    // Export all orders, not just filtered ones
     exportOrdersToCSV(orders)
   }
 
-  const totalItemsInFiltered = filteredOrders.reduce((sum, order) => sum + order.items.length, 0)
+  const handlePreviousPage = () => {
+    setCurrentPage((prev) => Math.max(1, prev - 1))
+  }
+
+  const handleNextPage = () => {
+    setCurrentPage((prev) => Math.min(totalPages, prev + 1))
+  }
+
+  const handlePageClick = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  // Generate page numbers for pagination display
+  const getPageNumbers = () => {
+    const pages = []
+    const maxVisiblePages = 5
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2))
+    const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+
+    // Adjust start page if we're near the end
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1)
+    }
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i)
+    }
+    return pages
+  }
 
   return (
     <div
@@ -146,8 +214,8 @@ export default function HistoryPage() {
                 size="sm"
               >
                 <Download className="w-3 h-3 sm:w-4 sm:h-4" />
-                <span className="hidden sm:inline">Export Orders to Excel</span>
-                <span className="sm:hidden">Export</span>
+                <span className="hidden sm:inline">Export All Orders to Excel</span>
+                <span className="sm:hidden">Export All</span>
               </Button>
             </div>
           </CardHeader>
@@ -204,9 +272,24 @@ export default function HistoryPage() {
               </div>
             </div>
 
+            {/* Pagination Info */}
+            {filteredOrders.length > 0 && (
+              <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm text-amber-700">
+                <span>
+                  Showing {startIndex + 1}-{Math.min(endIndex, filteredOrders.length)} of {filteredOrders.length}{" "}
+                  {filteredOrders.length === 1 ? "order" : "orders"}
+                </span>
+                {totalPages > 1 && (
+                  <span className="font-medium">
+                    Page {currentPage} of {totalPages}
+                  </span>
+                )}
+              </div>
+            )}
+
             {/* Orders List */}
             <div className="space-y-4">
-              {filteredOrders.length === 0 ? (
+              {currentPageOrders.length === 0 ? (
                 <div className="text-center py-8 text-gray-500">
                   <History className="w-12 h-12 mx-auto mb-4 text-gray-300" />
                   <p className="text-sm sm:text-base">
@@ -217,7 +300,7 @@ export default function HistoryPage() {
                   )}
                 </div>
               ) : (
-                filteredOrders.map((order) => (
+                currentPageOrders.map((order) => (
                   <Card key={order.id} className="bg-white/90 backdrop-blur-sm border border-amber-200">
                     <CardContent className="p-4">
                       <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
@@ -327,22 +410,111 @@ export default function HistoryPage() {
               )}
             </div>
 
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+              <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-4 border-t border-amber-200">
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handlePreviousPage}
+                    disabled={currentPage === 1}
+                    className="flex items-center gap-1 border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                    <span className="hidden sm:inline">Previous</span>
+                  </Button>
+
+                  <div className="flex items-center gap-1">
+                    {getPageNumbers().map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageClick(page)}
+                        className={
+                          currentPage === page
+                            ? "bg-amber-600 hover:bg-amber-700 text-white"
+                            : "border-amber-300 text-amber-700 hover:bg-amber-50"
+                        }
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleNextPage}
+                    disabled={currentPage === totalPages}
+                    className="flex items-center gap-1 border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+                  >
+                    <span className="hidden sm:inline">Next</span>
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+
+                <div className="text-sm text-amber-700 text-center sm:text-right">
+                  <div>
+                    Page {currentPage} of {totalPages}
+                  </div>
+                  <div className="text-xs text-amber-600">
+                    {filteredOrders.length} {filteredOrders.length === 1 ? "order" : "orders"} total
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Summary Stats */}
             {orders.length > 0 && (
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-8 pt-6 border-t border-amber-200">
-                <div className="text-center p-4 bg-white/90 rounded-lg border border-amber-200">
-                  <div className="text-xl sm:text-2xl font-bold text-amber-800">{filteredOrders.length}</div>
-                  <div className="text-xs sm:text-sm text-amber-600">Filtered Orders</div>
-                </div>
-                <div className="text-center p-4 bg-white/90 rounded-lg border border-amber-200">
-                  <div className="text-xl sm:text-2xl font-bold text-green-800">{totalItemsInFiltered}</div>
-                  <div className="text-xs sm:text-sm text-green-600">Total Items</div>
-                </div>
-                <div className="text-center p-4 bg-white/90 rounded-lg border border-amber-200">
-                  <div className="text-xl sm:text-2xl font-bold text-blue-800">
-                    ${filteredOrders.reduce((sum, order) => sum + order.finalTotal, 0).toFixed(2)}
+              <div className="space-y-4 mt-8 pt-6 border-t border-amber-200">
+                {/* Current Page Stats */}
+                {currentPageOrders.length > 0 && totalPages > 1 && (
+                  <div>
+                    <h4 className="text-sm font-medium text-amber-800 mb-3">Current Page Statistics</h4>
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="text-center p-3 bg-white/90 rounded-lg border border-amber-200">
+                        <div className="text-lg sm:text-xl font-bold text-amber-800">{currentPageOrders.length}</div>
+                        <div className="text-xs sm:text-sm text-amber-600">Orders on Page</div>
+                      </div>
+                      <div className="text-center p-3 bg-white/90 rounded-lg border border-amber-200">
+                        <div className="text-lg sm:text-xl font-bold text-green-800">{currentPageStats.totalItems}</div>
+                        <div className="text-xs sm:text-sm text-green-600">Items on Page</div>
+                      </div>
+                      <div className="text-center p-3 bg-white/90 rounded-lg border border-amber-200">
+                        <div className="text-lg sm:text-xl font-bold text-blue-800">
+                          ${currentPageStats.totalRevenue.toFixed(2)}
+                        </div>
+                        <div className="text-xs sm:text-sm text-blue-600">Revenue on Page</div>
+                      </div>
+                    </div>
                   </div>
-                  <div className="text-xs sm:text-sm text-blue-600">Total Revenue</div>
+                )}
+
+                {/* Overall Stats */}
+                <div>
+                  <h4 className="text-sm font-medium text-amber-800 mb-3">
+                    {filteredOrders.length < orders.length ? "Filtered Results" : "Overall Statistics"}
+                  </h4>
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="text-center p-4 bg-white/90 rounded-lg border border-amber-200">
+                      <div className="text-xl sm:text-2xl font-bold text-amber-800">{filteredOrders.length}</div>
+                      <div className="text-xs sm:text-sm text-amber-600">
+                        {filteredOrders.length < orders.length ? "Filtered Orders" : "Total Orders"}
+                      </div>
+                    </div>
+                    <div className="text-center p-4 bg-white/90 rounded-lg border border-amber-200">
+                      <div className="text-xl sm:text-2xl font-bold text-green-800">{allFilteredStats.totalItems}</div>
+                      <div className="text-xs sm:text-sm text-green-600">Total Items</div>
+                    </div>
+                    <div className="text-center p-4 bg-white/90 rounded-lg border border-amber-200">
+                      <div className="text-xl sm:text-2xl font-bold text-blue-800">
+                        ${allFilteredStats.totalRevenue.toFixed(2)}
+                      </div>
+                      <div className="text-xs sm:text-sm text-blue-600">Total Revenue</div>
+                    </div>
+                  </div>
                 </div>
               </div>
             )}
