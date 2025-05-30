@@ -90,6 +90,7 @@ export default function PastryOrderSystem() {
     Savory: [
       "Butter Chicken Puffs",
       "Chili Chicken Puffs",
+      "Buffalo Chicken Puffs",
       "Barbacoa (slow-cooked, tender beef) Puffs with Consommé",
       "Cajun Alfredo Chicken with Sundried Tomatoes Puffs",
       "Bacon, Chicken & Pesto Puffs",
@@ -107,25 +108,33 @@ export default function PastryOrderSystem() {
       "Berry Medley with Mascarpone and Lemon Curd Puffs",
       "Guava Cream Cheese Puffs",
       "Passion Fruit Mousse Puffs",
+      "Dubai Chocolate Puffs",
     ],
   }
 
   const defaultPrices = {
-    "Butter Chicken Puffs": 3.75,
-    "Chili Chicken Puffs": 3.5,
-    "Barbacoa (slow-cooked, tender beef) Puffs with Consommé": 4.25,
-    "Cajun Alfredo Chicken with Sundried Tomatoes Puffs": 4.0,
-    "Bacon, Chicken & Pesto Puffs": 3.95,
-    "Brie, Prosciutto & Fig Jam Puffs": 4.5,
-    "Chickpea Masala Puffs": 3.25,
-    "Potato Masala Puffs": 3.0,
-    "Butter Paneer Puffs": 3.5,
+    // Savory - Default $3.00
+    "Butter Chicken Puffs": 3.0,
+    "Chili Chicken Puffs": 3.0,
+    "Buffalo Chicken Puffs": 3.0,
+    "Barbacoa (slow-cooked, tender beef) Puffs with Consommé": 3.0,
+    "Cajun Alfredo Chicken with Sundried Tomatoes Puffs": 3.0,
+    "Bacon, Chicken & Pesto Puffs": 3.0,
+    "Brie, Prosciutto & Fig Jam Puffs": 3.0,
+
+    // Veggie - Default $2.75
+    "Chickpea Masala Puffs": 2.75,
+    "Potato Masala Puffs": 2.75,
+    "Butter Paneer Puffs": 2.75,
     "Chili-Infused Spinach and Feta Puffs": 2.75,
-    "Nutella Hazelnut Puffs": 3.25,
-    "Lemon Blackberry Cheesecake Puffs": 3.75,
-    "Berry Medley with Mascarpone and Lemon Curd Puffs": 4.0,
+
+    // Sweet - Default $3.30
+    "Nutella Hazelnut Puffs": 3.3,
+    "Lemon Blackberry Cheesecake Puffs": 3.3,
+    "Berry Medley with Mascarpone and Lemon Curd Puffs": 3.3,
     "Guava Cream Cheese Puffs": 3.3,
-    "Passion Fruit Mousse Puffs": 3.85,
+    "Passion Fruit Mousse Puffs": 3.3,
+    "Dubai Chocolate Puffs": 3.3,
   }
 
   const handleSubmitOrder = async () => {
@@ -355,7 +364,11 @@ export default function PastryOrderSystem() {
                       onValueChange={(value) => {
                         updatePuffItem(item.id, "category", value)
                         updatePuffItem(item.id, "type", "")
-                        updatePuffItem(item.id, "price", 0)
+                        // Set category default price immediately
+                        const categoryDefaultPrice =
+                          value === "Savory" ? 3.0 : value === "Sweet" ? 3.3 : value === "Veggie" ? 2.75 : 0
+                        updatePuffItem(item.id, "price", categoryDefaultPrice)
+                        updatePuffItem(item.id, "defaultPrice", categoryDefaultPrice)
                       }}
                     >
                       <SelectTrigger className="mt-1">
@@ -401,7 +414,19 @@ export default function PastryOrderSystem() {
                 <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-end">
                   <div>
                     <Label className="text-amber-800 text-sm">Price</Label>
-                    {item.defaultPrice > 0 && (
+                    {item.category && !item.type && (
+                      <div className="text-xs text-amber-600">
+                        Category Default: $
+                        {item.category === "Savory"
+                          ? "3.00"
+                          : item.category === "Sweet"
+                            ? "3.30"
+                            : item.category === "Veggie"
+                              ? "2.75"
+                              : "0.00"}
+                      </div>
+                    )}
+                    {item.defaultPrice > 0 && item.type && (
                       <div className="text-xs text-amber-600">Default: ${item.defaultPrice.toFixed(2)}</div>
                     )}
                     <Input
