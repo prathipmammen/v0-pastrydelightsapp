@@ -59,41 +59,39 @@ export default function Receipt({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-4">
-      <div className="max-w-4xl mx-auto">
+    <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
+      <div className="max-w-md mx-auto">
         {/* Print Button - Hidden when printing */}
-        <div className="print:hidden mb-6 flex justify-end">
-          <Button onClick={handlePrintPDF} className="bg-orange-600 hover:bg-orange-700 text-white">
+        <div className="print:hidden mb-4 flex justify-end">
+          <Button onClick={handlePrintPDF} className="bg-orange-600 hover:bg-orange-700 text-white text-sm">
             <Printer className="w-4 h-4 mr-2" />
             Print PDF
           </Button>
         </div>
 
-        {/* Receipt */}
+        {/* Compact Receipt */}
         <Card className="bg-amber-50 border-amber-200 print:shadow-none print:border-none">
-          <CardContent className="p-6">
-            {/* Receipt Header */}
-            <div className="flex justify-between items-start mb-6">
-              <div>
-                <h2 className="text-xl font-bold text-amber-800 mb-2">Receipt #{receiptId}</h2>
-              </div>
+          <CardContent className="p-4">
+            {/* Receipt Header - Compact */}
+            <div className="text-center mb-4">
+              <h2 className="text-lg font-bold text-amber-800 mb-1">Receipt #{receiptId}</h2>
             </div>
 
-            {/* Company Info and QR Code */}
-            <div className="bg-white p-6 rounded-lg border border-amber-200 mb-6 print:border-gray-300">
-              <div className="flex justify-between items-start">
-                <div className="flex items-center gap-3">
-                  <img src="/images/pd-logo.png" alt="P&D Pastry Delights Logo" className="w-12 h-12 object-contain" />
+            {/* Company Info and QR Code - Compact */}
+            <div className="bg-white p-3 rounded-lg border border-amber-200 mb-4 print:border-gray-300">
+              <div className="flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  <img src="/images/pd-logo.png" alt="P&D Logo" className="w-8 h-8 object-contain" />
                   <div>
-                    <h3 className="font-bold text-amber-800">P&D Pastry Delights</h3>
-                    <p className="text-sm text-amber-600">Premium Puff Pastries</p>
+                    <h3 className="font-bold text-amber-800 text-sm">P&D Pastry Delights</h3>
+                    <p className="text-xs text-amber-600">Premium Puff Pastries</p>
                   </div>
                 </div>
-                <div className="text-right">
-                  <img src="/images/qr-code.png" alt="QR Code" className="w-16 h-16 object-contain" />
+                <div>
+                  <img src="/images/qr-code.png" alt="QR Code" className="w-12 h-12 object-contain" />
                 </div>
               </div>
-              <div className="mt-4 text-sm text-amber-600">
+              <div className="mt-2 text-xs text-amber-600">
                 <div>Receipt ID: {receiptId}</div>
                 <div>
                   Generated: {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
@@ -101,12 +99,12 @@ export default function Receipt({
               </div>
             </div>
 
-            {/* Customer and Delivery Info */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-6">
+            {/* Customer and Delivery Info - Side by Side */}
+            <div className="grid grid-cols-2 gap-3 mb-4">
               {/* Customer Information */}
-              <div className="bg-white p-4 rounded-lg border border-amber-200 print:border-gray-300">
-                <h4 className="font-semibold text-amber-800 mb-3">Customer Information</h4>
-                <div className="space-y-2 text-sm">
+              <div className="bg-white p-3 rounded-lg border border-amber-200 print:border-gray-300">
+                <h4 className="font-semibold text-amber-800 mb-2 text-sm">Customer Information</h4>
+                <div className="space-y-1 text-xs">
                   <div>
                     <span className="font-medium">Name:</span> {customerName}
                   </div>
@@ -117,9 +115,9 @@ export default function Receipt({
               </div>
 
               {/* Delivery Details */}
-              <div className="bg-white p-4 rounded-lg border border-amber-200 print:border-gray-300">
-                <h4 className="font-semibold text-amber-800 mb-3">Delivery Details</h4>
-                <div className="space-y-2 text-sm">
+              <div className="bg-white p-3 rounded-lg border border-amber-200 print:border-gray-300">
+                <h4 className="font-semibold text-amber-800 mb-2 text-sm">Delivery Details</h4>
+                <div className="space-y-1 text-xs">
                   <div>
                     <span className="font-medium">Date:</span> {deliveryDate}
                   </div>
@@ -129,69 +127,57 @@ export default function Receipt({
                   <div>
                     <span className="font-medium">Payment:</span> {paymentMethod}
                   </div>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <span className="font-medium">🚚 Delivery:</span>
                     <span className={isDelivery ? "text-blue-600" : "text-gray-600"}>{isDelivery ? "Yes" : "No"}</span>
                   </div>
-                  {isDelivery && (
-                    <>
-                      <div>
-                        <span className="font-medium">Delivery Address:</span> {deliveryAddress}
-                      </div>
-                      <div>
-                        <span className="font-medium">Delivery Fee:</span> ${deliveryFee.toFixed(2)}
-                      </div>
-                    </>
-                  )}
                 </div>
               </div>
             </div>
 
-            {/* Items Ordered */}
-            <div className="bg-white p-4 rounded-lg border border-amber-200 mb-6 print:border-gray-300">
-              <h4 className="font-semibold text-amber-800 mb-4">Items Ordered</h4>
-              <div className="space-y-4">
+            {/* Items Ordered - Compact */}
+            <div className="bg-white p-3 rounded-lg border border-amber-200 mb-4 print:border-gray-300">
+              <h4 className="font-semibold text-amber-800 mb-3 text-sm">Items Ordered</h4>
+              <div className="space-y-2">
                 {items.map((item, index) => (
-                  <div key={index} className="border-b border-gray-100 pb-3 last:border-b-0">
-                    <div className="flex justify-between items-start">
-                      <div>
-                        <div className="font-medium text-amber-800">{item.name}</div>
-                        <div className="text-sm text-amber-600">{item.category}</div>
-                        <div className="text-sm text-gray-600">Qty: {item.quantity}</div>
-                      </div>
-                      <div className="text-right">
-                        <div className="font-semibold">${item.total.toFixed(2)}</div>
-                        <div className="text-sm text-gray-600">@ ${item.unitPrice.toFixed(2)}</div>
-                      </div>
+                  <div key={index} className="flex justify-between items-center text-xs">
+                    <div className="flex-1">
+                      <div className="font-medium text-amber-800">{item.name}</div>
+                      <div className="text-amber-600">{item.category}</div>
+                      <div className="text-gray-600">Qty: {item.quantity}</div>
+                    </div>
+                    <div className="text-right ml-2">
+                      <div className="font-semibold">${item.total.toFixed(2)}</div>
+                      <div className="text-gray-600">@ ${item.unitPrice.toFixed(2)}</div>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
 
-            {/* Order Summary with detailed breakdown */}
-            <div className="bg-white p-4 rounded-lg border border-amber-200 mb-6 print:border-gray-300">
-              <h4 className="flex items-center gap-2 font-semibold text-amber-800 mb-4">
+            {/* Order Calculation Breakdown - Compact */}
+            <div className="bg-white p-3 rounded-lg border border-amber-200 mb-4 print:border-gray-300">
+              <h4 className="flex items-center gap-2 font-semibold text-amber-800 mb-3 text-sm">
                 📋 Order Calculation Breakdown
               </h4>
 
-              {/* Items breakdown */}
-              <div className="space-y-2 mb-4">
-                <h5 className="font-medium text-amber-700">Items Ordered:</h5>
+              {/* Items breakdown - Compact */}
+              <div className="space-y-1 mb-3">
+                <h5 className="font-medium text-amber-700 text-xs">Items Ordered:</h5>
                 {items.map((item, index) => (
-                  <div key={index} className="flex justify-between text-sm bg-gray-50 p-2 rounded">
-                    <span>
+                  <div key={index} className="flex justify-between text-xs bg-gray-50 p-1 rounded">
+                    <span className="truncate">
                       {item.quantity}x {item.name} ({item.category}) @ ${item.unitPrice.toFixed(2)}
                     </span>
-                    <span className="font-medium">${item.total.toFixed(2)}</span>
+                    <span className="font-medium ml-2">${item.total.toFixed(2)}</span>
                   </div>
                 ))}
               </div>
 
-              <Separator className="my-3" />
+              <Separator className="my-2" />
 
-              {/* Step-by-step calculations */}
-              <div className="space-y-2">
+              {/* Step-by-step calculations - Compact */}
+              <div className="space-y-1 text-xs">
                 <div className="flex justify-between">
                   <span>1. Puff Subtotal:</span>
                   <span>${puffSubtotal.toFixed(2)}</span>
@@ -204,7 +190,7 @@ export default function Receipt({
                   </div>
                 )}
 
-                <div className="flex justify-between font-semibold bg-amber-50 p-2 rounded print:bg-gray-100">
+                <div className="flex justify-between font-semibold bg-amber-50 p-1 rounded print:bg-gray-100">
                   <span>{discount > 0 ? "3." : "2."} Subtotal After Discount:</span>
                   <span>${preTaxSubtotal.toFixed(2)}</span>
                 </div>
@@ -224,25 +210,27 @@ export default function Receipt({
                   <span>+${tax.toFixed(2)}</span>
                 </div>
 
-                <Separator />
+                <Separator className="my-1" />
 
-                <div className="flex justify-between text-lg font-bold text-amber-800">
+                <div className="flex justify-between text-base font-bold text-amber-800 bg-amber-100 p-2 rounded print:bg-gray-100">
                   <span>Final Total:</span>
                   <span>${finalTotal.toFixed(2)}</span>
                 </div>
 
                 {isPaid && (
-                  <div className="text-center mt-4">
-                    <span className="bg-green-100 text-green-800 px-4 py-2 rounded-full font-semibold">PAID</span>
+                  <div className="text-center mt-2">
+                    <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full font-semibold text-xs">
+                      PAID
+                    </span>
                   </div>
                 )}
               </div>
 
-              {/* Delivery details if applicable */}
-              {isDelivery && (
-                <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200 print:bg-gray-100 print:border-gray-300">
-                  <h5 className="flex items-center gap-2 font-medium text-blue-800 mb-2">🚚 Delivery Information:</h5>
-                  <div className="text-sm text-blue-700">
+              {/* Delivery details if applicable - Compact */}
+              {isDelivery && deliveryAddress && (
+                <div className="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-200 print:bg-gray-100 print:border-gray-300">
+                  <h5 className="flex items-center gap-1 font-medium text-blue-800 mb-1 text-xs">🚚 Delivery Info:</h5>
+                  <div className="text-xs text-blue-700">
                     <div>
                       <strong>Address:</strong> {deliveryAddress}
                     </div>
@@ -254,8 +242,8 @@ export default function Receipt({
               )}
             </div>
 
-            {/* Biblical Quote */}
-            <div className="text-center text-amber-600 italic text-sm border-t border-amber-200 pt-4 print:border-gray-300">
+            {/* Biblical Quote - Compact */}
+            <div className="text-center text-amber-600 italic text-xs border-t border-amber-200 pt-3 print:border-gray-300">
               <p>"The Lord bless you and keep you; the Lord makes His face shine on you and be gracious to you."</p>
               <p className="mt-1 font-medium">Numbers 6:24-25</p>
             </div>
@@ -263,11 +251,13 @@ export default function Receipt({
         </Card>
       </div>
 
-      {/* Print Styles */}
+      {/* Enhanced Print Styles for Mobile */}
       <style jsx global>{`
         @media print {
           body {
             background: white !important;
+            margin: 0 !important;
+            padding: 0 !important;
           }
           .print\\:hidden {
             display: none !important;
@@ -283,6 +273,25 @@ export default function Receipt({
           }
           .print\\:bg-gray-100 {
             background-color: #f3f4f6 !important;
+          }
+          @page {
+            size: A4;
+            margin: 0.5in;
+          }
+          .max-w-md {
+            max-width: 100% !important;
+          }
+          /* Ensure everything fits on one page */
+          * {
+            -webkit-print-color-adjust: exact !important;
+            color-adjust: exact !important;
+          }
+        }
+        
+        @media screen and (max-width: 640px) {
+          /* Mobile-specific adjustments */
+          .max-w-md {
+            max-width: 100%;
           }
         }
       `}</style>
