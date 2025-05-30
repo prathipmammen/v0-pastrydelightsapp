@@ -43,7 +43,8 @@ export default function TrendsPage() {
 
   const filteredOrders = orders.filter((order) => {
     if (filterYear === "All Years") return true
-    const orderYear = new Date(order.deliveryDate).getFullYear().toString()
+    const orderDate = new Date(order.deliveryDate + "T00:00:00")
+    const orderYear = orderDate.getFullYear().toString()
     return orderYear === filterYear
   })
 
@@ -57,15 +58,26 @@ export default function TrendsPage() {
 
   const monthlyData = filteredOrders.reduce(
     (acc, order) => {
-      const date = new Date(order.deliveryDate)
-      const month = date.toLocaleString("default", { month: "short" }).toUpperCase()
+      // Parse the date correctly - deliveryDate is in YYYY-MM-DD format
+      const date = new Date(order.deliveryDate + "T00:00:00") // Add time to ensure proper parsing
+      const year = date.getFullYear()
+      const monthIndex = date.getMonth() // 0-11
 
-      if (!acc[month]) {
-        acc[month] = { month, sales: 0, orders: 0 }
+      // Create a key that includes both year and month for proper grouping
+      const monthNames = ["JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC"]
+      const monthKey = monthNames[monthIndex]
+
+      // If filtering by year, only include orders from that year
+      if (filterYear !== "All Years" && year.toString() !== filterYear) {
+        return acc
       }
 
-      acc[month].sales += order.finalTotal
-      acc[month].orders += 1
+      if (!acc[monthKey]) {
+        acc[monthKey] = { month: monthKey, sales: 0, orders: 0 }
+      }
+
+      acc[monthKey].sales += order.finalTotal
+      acc[monthKey].orders += 1
 
       return acc
     },
@@ -113,7 +125,12 @@ export default function TrendsPage() {
 
   const availableYears = [
     "All Years",
-    ...new Set(orders.map((order) => new Date(order.deliveryDate).getFullYear().toString())),
+    ...new Set(
+      orders.map((order) => {
+        const orderDate = new Date(order.deliveryDate + "T00:00:00")
+        return orderDate.getFullYear().toString()
+      }),
+    ),
   ]
 
   return (
@@ -218,7 +235,7 @@ export default function TrendsPage() {
                         label={{ value: "Sales", angle: -90, position: "insideLeft" }}
                       />
                       <Tooltip
-                        formatter={(value, name) => [`$${value}`, "Sales"]}
+                        formatter={(value, name) => [`$${Number(value).toFixed(2)}`, "Sales"]}
                         labelStyle={{ color: "#333" }}
                         contentStyle={{
                           backgroundColor: "#fff",
@@ -251,7 +268,7 @@ export default function TrendsPage() {
                           label={{ value: "Total Quantity", angle: -90, position: "insideLeft" }}
                         />
                         <Tooltip
-                          formatter={(value, name) => [value, "Total Quantity"]}
+                          formatter={(value, name) => [value, "Orders"]}
                           labelFormatter={(label) => `Month: ${label}`}
                         />
                         <Line
