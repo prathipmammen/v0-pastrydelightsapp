@@ -6,7 +6,6 @@ import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
-import Image from "next/image"
 import {
   Plus,
   Receipt,
@@ -468,10 +467,40 @@ export default function CalendarPage() {
 
   // Desktop version
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gray-50 relative">
+      {/* P&D Logo Watermark - 90% transparent, centered, non-intrusive */}
+      <div
+        className="fixed inset-0 flex items-center justify-center pointer-events-none z-0"
+        style={{
+          backgroundImage: `url('/images/pd-logo-watermark-new.png')`,
+          backgroundSize: "400px 400px",
+          backgroundPosition: "center",
+          backgroundRepeat: "no-repeat",
+          opacity: 0.1,
+        }}
+      >
+        {/* Fallback image element */}
+        <div className="w-96 h-96 opacity-10">
+          <img
+            src="/images/pd-logo-watermark-new.png"
+            alt="P&D Pastry Delights Logo"
+            className="w-full h-full object-contain"
+            onError={(e) => {
+              console.log("Primary watermark image failed, trying fallback")
+              e.currentTarget.src = "/images/pd-logo-transparent.png"
+              e.currentTarget.onerror = () => {
+                console.log("Fallback watermark image also failed")
+                e.currentTarget.style.display = "none"
+              }
+            }}
+            onLoad={() => console.log("Watermark image loaded successfully")}
+          />
+        </div>
+      </div>
+
       {/* Connection Status & Error Messages */}
       {error && (
-        <div className="mx-4 pt-4 pb-2">
+        <div className="mx-4 pt-4 pb-2 relative z-10">
           <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-red-600" />
             <span className="text-red-800 text-sm">
@@ -481,22 +510,9 @@ export default function CalendarPage() {
         </div>
       )}
 
-      <div className="max-w-7xl mx-auto bg-white min-h-screen relative">
-        {/* Watermark Logo - 10% opacity (90% transparency) */}
-        <div className="absolute inset-0 flex items-center justify-center pointer-events-none opacity-10 z-0">
-          <div className="w-1/2 max-w-[600px]">
-            <Image
-              src="/images/pd-logo-transparent.png"
-              alt="Pastry Delights Logo"
-              width={600}
-              height={600}
-              className="w-full h-auto"
-            />
-          </div>
-        </div>
-
+      <div className="max-w-7xl mx-auto bg-white min-h-screen relative z-10">
         {/* Statistics Bar */}
-        <div className="relative z-10 bg-gray-50 border-b border-gray-200 p-4">
+        <div className="relative z-20 bg-gray-50 border-b border-gray-200 p-4">
           <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
             <div className="text-center">
               <div className="text-2xl font-bold text-orange-600">{currentPeriodStats.totalOrders}</div>
@@ -518,7 +534,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Header */}
-        <div className="relative z-10 border-b border-gray-200 bg-white">
+        <div className="relative z-20 border-b border-gray-200 bg-white">
           <div className="flex items-center justify-between p-4">
             <div className="flex items-center gap-6">
               <h1 className="text-xl font-semibold text-gray-900">Order Calendar</h1>
@@ -565,7 +581,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Period Navigation */}
-        <div className="relative z-10 border-b border-gray-200 bg-white">
+        <div className="relative z-20 border-b border-gray-200 bg-white">
           <div className="flex items-center justify-between p-4">
             <h2 className="text-2xl font-light text-gray-900">{getDisplayTitle()}</h2>
             <div className="flex items-center gap-2">
@@ -598,7 +614,7 @@ export default function CalendarPage() {
         </div>
 
         {/* Content Area */}
-        <div className="relative z-10">
+        <div className="relative z-20">
           {viewMode === "Day" && renderDayView()}
           {viewMode === "Week" && renderWeekView()}
           {viewMode === "Year" && renderYearView()}
@@ -687,7 +703,7 @@ export default function CalendarPage() {
 
         {/* Selected Date Details for Month View */}
         {viewMode === "Month" && selectedDate && (
-          <div className="relative z-10 border-t border-gray-200 bg-gray-50 p-4">
+          <div className="relative z-20 border-t border-gray-200 bg-gray-50 p-4">
             <div className="max-w-4xl mx-auto">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Orders for{" "}
@@ -759,7 +775,7 @@ export default function CalendarPage() {
       </div>
 
       {/* Navigation Footer */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 z-20">
+      <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 z-30">
         <div className="max-w-7xl mx-auto flex justify-center">
           <div className="flex gap-0 w-full max-w-md">
             <Button

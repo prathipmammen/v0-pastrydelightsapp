@@ -2,6 +2,8 @@
 
 import { useEffect, useState } from "react"
 import Receipt from "@/components/receipt"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
 
 interface OrderData {
   receiptId: string
@@ -38,6 +40,7 @@ interface OrderData {
 
 export default function ReceiptPage() {
   const [orderData, setOrderData] = useState<OrderData | null>(null)
+  const router = useRouter()
 
   useEffect(() => {
     // Get order data from localStorage
@@ -55,9 +58,15 @@ export default function ReceiptPage() {
   if (!orderData) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-amber-50">
-        <div className="text-center p-6 bg-white rounded-lg shadow-md">
+        <div className="text-center p-6 bg-white rounded-lg shadow-md max-w-md">
           <h2 className="text-xl font-bold text-amber-800 mb-2">No Receipt Available</h2>
-          <p className="text-amber-600">Please create an order first to view the receipt.</p>
+          <p className="text-amber-600 mb-4">Please create an order first to view the receipt.</p>
+          <Button
+            onClick={() => router.push("/")}
+            className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-6 py-2"
+          >
+            Create New Order
+          </Button>
         </div>
       </div>
     )

@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Printer, Gift, Star, CheckCircle, XCircle, CreditCard } from "lucide-react"
+import { Printer, Gift, Star, CheckCircle, XCircle, CreditCard, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 
 interface ReceiptItem {
@@ -75,10 +75,6 @@ export default function Receipt({
     window.print()
   }
 
-  const handleBackToOrders = () => {
-    router.push("/history")
-  }
-
   // Calculate previous balance (before this transaction)
   const previousBalance = customerRewardsBalance - pointsEarned + pointsRedeemed
 
@@ -89,25 +85,18 @@ export default function Receipt({
   return (
     <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
       <div className="max-w-md mx-auto">
-        {/* Action Buttons - Hidden when printing */}
-        <div className="print:hidden mb-4 flex flex-col sm:flex-row gap-3 justify-between items-center">
+        {/* Print and Navigation Buttons - Hidden when printing */}
+        <div className="print:hidden mb-4 flex flex-col sm:flex-row gap-2 justify-end">
           <Button
-            onClick={handleBackToOrders}
-            className="w-full sm:w-auto bg-amber-600 hover:bg-amber-700 text-white font-medium px-6 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-            aria-label="Return to Order History"
+            onClick={() => router.push("/history")}
+            variant="outline"
+            className="bg-amber-600 hover:bg-amber-700 text-white border-amber-600 hover:border-amber-700 text-sm font-semibold"
           >
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 19l-7-7m0 0l7-7m-7 7h18" />
-            </svg>
+            <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Orders
           </Button>
-
-          <Button
-            onClick={handlePrintPDF}
-            className="w-full sm:w-auto bg-orange-600 hover:bg-orange-700 text-white font-medium px-6 py-2 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
-            aria-label="Print Receipt as PDF"
-          >
-            <Printer className="w-4 h-4" />
+          <Button onClick={handlePrintPDF} className="bg-orange-600 hover:bg-orange-700 text-white text-sm">
+            <Printer className="w-4 h-4 mr-2" />
             Print PDF
           </Button>
         </div>
