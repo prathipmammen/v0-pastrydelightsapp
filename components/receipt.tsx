@@ -37,6 +37,7 @@ interface ReceiptProps {
   pointsRedeemed?: number
   rewardsDiscountAmount?: number
   customerRewardsBalance?: number
+  customerPreviousBalance?: number
 }
 
 export default function Receipt({
@@ -63,10 +64,14 @@ export default function Receipt({
   pointsRedeemed = 0,
   rewardsDiscountAmount = 0,
   customerRewardsBalance = 0,
+  customerPreviousBalance = 0,
 }: ReceiptProps) {
   const handlePrintPDF = () => {
     window.print()
   }
+
+  // Calculate previous balance (before this transaction)
+  const previousBalance = customerRewardsBalance - pointsEarned + pointsRedeemed
 
   return (
     <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
@@ -276,7 +281,7 @@ export default function Receipt({
               )}
             </div>
 
-            {/* Rewards Summary */}
+            {/* Rewards Summary - Updated with clear calculation */}
             {(pointsEarned > 0 || pointsRedeemed > 0 || customerRewardsBalance > 0) && (
               <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 rounded-lg border border-purple-200 mb-4 print:bg-gray-100 print:border-gray-300">
                 <h4 className="flex items-center gap-2 font-semibold text-purple-800 mb-3 text-sm">
@@ -284,17 +289,22 @@ export default function Receipt({
                 </h4>
 
                 <div className="space-y-2 text-xs">
-                  {pointsEarned > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-purple-700">Points earned this order:</span>
-                      <span className="font-semibold text-green-600">+{pointsEarned} points</span>
+                  <div className="flex justify-between items-center">
+                    <span className="text-purple-700">Starting Balance:</span>
+                    <span className="font-medium">{previousBalance} points</span>
+                  </div>
+
+                  {pointsRedeemed > 0 && (
+                    <div className="flex justify-between items-center text-red-600">
+                      <span>Points redeemed:</span>
+                      <span className="font-semibold">-{pointsRedeemed} points</span>
                     </div>
                   )}
 
-                  {pointsRedeemed > 0 && (
-                    <div className="flex justify-between items-center">
-                      <span className="text-purple-700">Points redeemed:</span>
-                      <span className="font-semibold text-red-600">-{pointsRedeemed} points</span>
+                  {pointsEarned > 0 && (
+                    <div className="flex justify-between items-center text-green-600">
+                      <span>Points earned this order:</span>
+                      <span className="font-semibold">+{pointsEarned} points</span>
                     </div>
                   )}
 
@@ -303,9 +313,14 @@ export default function Receipt({
                   <div className="flex justify-between items-center bg-white/60 p-2 rounded">
                     <span className="font-medium text-purple-800 flex items-center gap-1">
                       <Star className="w-3 h-3" />
-                      Current rewards balance:
+                      New rewards balance:
                     </span>
                     <span className="font-bold text-purple-800">{customerRewardsBalance} points</span>
+                  </div>
+
+                  <div className="text-center text-purple-600 text-xs mt-1">
+                    {previousBalance} {pointsRedeemed > 0 ? `- ${pointsRedeemed}` : ""} + {pointsEarned} ={" "}
+                    {customerRewardsBalance} points
                   </div>
 
                   <div className="text-center text-purple-600 text-xs mt-2">

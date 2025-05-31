@@ -18,10 +18,22 @@ import {
   Trash2,
   AlertCircle,
   CheckCircle,
+  User,
+  UserPlus,
+  Users,
+  Info,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { addOrder, prepareOrderForFirestore } from "@/lib/firestore"
-import { findCustomer, createCustomer, processOrderRewards, calculatePointsEarned, type Customer } from "@/lib/rewards"
+import {
+  findCustomers,
+  createCustomer,
+  processOrderRewards,
+  calculatePointsEarned,
+  formatCustomerDisplay,
+  type Customer,
+  type CustomerMatch,
+} from "@/lib/rewards"
 import FirebaseBanner from "@/components/firebase-banner"
 import RewardsDisplay from "@/components/rewards-display"
 
@@ -48,44 +60,126 @@ export default function PastryOrderSystem() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitMessage, setSubmitMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
-  // Rewards state
+  // Enhanced customer lookup state
   const [customer, setCustomer] = useState<Customer | null>(null)
   const [isLoadingCustomer, setIsLoadingCustomer] = useState(false)
   const [useRewardsRedemption, setUseRewardsRedemption] = useState(false)
+  const [customerMatches, setCustomerMatches] = useState<CustomerMatch[]>([])
+  const [showCustomerSelection, setShowCustomerSelection] = useState(false)
+  const [customerLookupMessage, setCustomerLookupMessage] = useState<{
+    type: "found" | "new" | "multiple" | "insufficient" | "error" | "searching"
+    text: string
+  } | null>(null)
 
   const router = useRouter()
 
-  // Auto-search for customer when contact info changes
+  // Helper function to check if name has both first and last name
+  const hasFullName = (name: string): boolean => {
+    const trimmed = name.trim()
+    const parts = trimmed.split(/\s+/)
+    return parts.length >= 2 && parts.every((part) => part.length > 0)
+  }
+
+  // Enhanced customer search with comprehensive lookup
   useEffect(() => {
-    const searchCustomer = async () => {
-      if (!customerName.trim() && !phoneEmail.trim()) {
-        setCustomer(null)
-        setUseRewardsRedemption(false)
+    const searchCustomers = async () => {
+      const trimmedName = customerName.trim()
+      const trimmedContact = phoneEmail.trim()
+
+      // Clear previous state
+      setCustomer(null)
+      setUseRewardsRedemption(false)
+      setCustomerMatches([])
+      setShowCustomerSelection(false)
+      setCustomerLookupMessage(null)
+
+      // Don't search if no meaningful input
+      if (!trimmedName && !trimmedContact) {
+        return
+      }
+
+      // Check if we have enough information to search
+      const hasMinimumInfo = trimmedName.length >= 2 || trimmedContact.length >= 3
+
+      if (!hasMinimumInfo) {
+        setCustomerLookupMessage({
+          type: "insufficient",
+          text: "Please enter at least 2 characters for name or 3+ for phone/email to search for existing customers.",
+        })
         return
       }
 
       setIsLoadingCustomer(true)
+      setCustomerLookupMessage({
+        type: "searching",
+        text: "Searching for existing customer records...",
+      })
+
       try {
         // Extract phone and email from phoneEmail field
-        const isEmail = phoneEmail.includes("@")
-        const phone = isEmail ? "" : phoneEmail
-        const email = isEmail ? phoneEmail : ""
+        const isEmail = trimmedContact.includes("@")
+        const phone = isEmail ? "" : trimmedContact
+        const email = isEmail ? trimmedContact : ""
 
-        const foundCustomer = await findCustomer(customerName, phone, email)
-        setCustomer(foundCustomer)
-        setUseRewardsRedemption(false) // Reset redemption when customer changes
+        const matches = await findCustomers(trimmedName, phone, email)
+
+        if (matches.length === 0) {
+          // No matches found - new customer
+          setCustomerLookupMessage({
+            type: "new",
+            text: "No existing customer found. A new customer account will be created with this order. You'll start earning reward points!",
+          })
+        } else if (matches.length === 1) {
+          // Single match found - auto-select
+          const selectedCustomer = matches[0].customer
+          setCustomer(selectedCustomer)
+          setCustomerLookupMessage({
+            type: "found",
+            text: `Customer Found! Welcome back, ${selectedCustomer.name}! You have ${selectedCustomer.rewardsPoints} reward points.`,
+          })
+        } else {
+          // Multiple matches - show selection
+          setCustomerMatches(matches)
+          setShowCustomerSelection(true)
+          setCustomerLookupMessage({
+            type: "multiple",
+            text: `Found ${matches.length} possible matches. Please select the correct customer below:`,
+          })
+        }
       } catch (error) {
-        console.error("Error searching for customer:", error)
-        setCustomer(null)
+        console.error("Error searching for customers:", error)
+        setCustomerLookupMessage({
+          type: "error",
+          text: "Error searching for customer. Please try again or contact support.",
+        })
       } finally {
         setIsLoadingCustomer(false)
       }
     }
 
     // Debounce the search
-    const timeoutId = setTimeout(searchCustomer, 500)
+    const timeoutId = setTimeout(searchCustomers, 600)
     return () => clearTimeout(timeoutId)
   }, [customerName, phoneEmail])
+
+  // Handle customer selection from multiple matches
+  const handleCustomerSelection = (selectedCustomer: Customer) => {
+    setCustomer(selectedCustomer)
+    setShowCustomerSelection(false)
+    setCustomerMatches([])
+    setCustomerLookupMessage({
+      type: "found",
+      text: `Customer Selected! Welcome back, ${selectedCustomer.name}! You have ${selectedCustomer.rewardsPoints} reward points.`,
+    })
+
+    // Update form fields with selected customer data
+    setCustomerName(selectedCustomer.name)
+    if (selectedCustomer.phone && !phoneEmail.includes("@")) {
+      setPhoneEmail(selectedCustomer.phone)
+    } else if (selectedCustomer.email && phoneEmail.includes("@")) {
+      setPhoneEmail(selectedCustomer.email)
+    }
+  }
 
   const addPuffItem = () => {
     const newItem: PuffItem = {
@@ -308,14 +402,21 @@ export default function PastryOrderSystem() {
               </h3>
               <div className="grid grid-cols-1 gap-4">
                 <div>
-                  <Label htmlFor="customerName" className="text-amber-800 text-sm">
+                  <Label htmlFor="customerName" className="text-amber-800 text-sm flex items-center gap-2">
                     Customer Name *
+                    <div className="group relative">
+                      <Info className="w-3 h-3 text-amber-600 cursor-help" />
+                      <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-3 py-2 bg-gray-800 text-white text-xs rounded-lg opacity-0 group-hover:opacity-100 transition-opacity duration-200 pointer-events-none whitespace-nowrap z-10">
+                        💡 Tip: Enter both first and last name for best results. If this customer has ordered before,
+                        add their phone or email to ensure accurate rewards lookup.
+                      </div>
+                    </div>
                   </Label>
                   <Input
                     id="customerName"
                     value={customerName}
                     onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder="Enter customer name"
+                    placeholder="Enter full name (e.g., John Smith)"
                     className="mt-1"
                   />
                 </div>
@@ -327,15 +428,124 @@ export default function PastryOrderSystem() {
                     id="phoneEmail"
                     value={phoneEmail}
                     onChange={(e) => setPhoneEmail(e.target.value)}
-                    placeholder="Enter phone or email (optional)"
+                    placeholder="Enter phone number or email address"
                     className="mt-1"
                   />
+                  <div className="text-xs text-amber-600 mt-1">
+                    {hasFullName(customerName)
+                      ? "Optional - helps verify the correct customer"
+                      : "Recommended for accurate customer lookup"}
+                  </div>
                 </div>
+
+                {/* Customer lookup status messages */}
+                {customerLookupMessage && (
+                  <div
+                    className={`p-3 border rounded-lg flex items-start gap-3 ${
+                      customerLookupMessage.type === "found"
+                        ? "bg-green-50 border-green-200"
+                        : customerLookupMessage.type === "new"
+                          ? "bg-blue-50 border-blue-200"
+                          : customerLookupMessage.type === "multiple"
+                            ? "bg-purple-50 border-purple-200"
+                            : customerLookupMessage.type === "searching"
+                              ? "bg-blue-50 border-blue-200"
+                              : customerLookupMessage.type === "insufficient"
+                                ? "bg-yellow-50 border-yellow-200"
+                                : "bg-red-50 border-red-200"
+                    }`}
+                  >
+                    <div className="flex-shrink-0 mt-0.5">
+                      {customerLookupMessage.type === "found" && <User className="w-4 h-4 text-green-600" />}
+                      {customerLookupMessage.type === "new" && <UserPlus className="w-4 h-4 text-blue-600" />}
+                      {customerLookupMessage.type === "multiple" && <Users className="w-4 h-4 text-purple-600" />}
+                      {customerLookupMessage.type === "searching" && (
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      )}
+                      {customerLookupMessage.type === "insufficient" && (
+                        <AlertCircle className="w-4 h-4 text-yellow-600" />
+                      )}
+                      {customerLookupMessage.type === "error" && <AlertCircle className="w-4 h-4 text-red-600" />}
+                    </div>
+                    <div className="flex-1">
+                      <div
+                        className={`text-sm font-medium mb-1 ${
+                          customerLookupMessage.type === "found"
+                            ? "text-green-800"
+                            : customerLookupMessage.type === "new"
+                              ? "text-blue-800"
+                              : customerLookupMessage.type === "multiple"
+                                ? "text-purple-800"
+                                : customerLookupMessage.type === "searching"
+                                  ? "text-blue-800"
+                                  : customerLookupMessage.type === "insufficient"
+                                    ? "text-yellow-800"
+                                    : "text-red-800"
+                        }`}
+                      >
+                        {customerLookupMessage.type === "found" && "Customer Found!"}
+                        {customerLookupMessage.type === "new" && "New Customer"}
+                        {customerLookupMessage.type === "multiple" && "Multiple Customers Found"}
+                        {customerLookupMessage.type === "searching" && "Searching..."}
+                        {customerLookupMessage.type === "insufficient" && "More Information Needed"}
+                        {customerLookupMessage.type === "error" && "Search Error"}
+                      </div>
+                      <div
+                        className={`text-sm ${
+                          customerLookupMessage.type === "found"
+                            ? "text-green-700"
+                            : customerLookupMessage.type === "new"
+                              ? "text-blue-700"
+                              : customerLookupMessage.type === "multiple"
+                                ? "text-purple-700"
+                                : customerLookupMessage.type === "searching"
+                                  ? "text-blue-700"
+                                  : customerLookupMessage.type === "insufficient"
+                                    ? "text-yellow-700"
+                                    : "text-red-700"
+                        }`}
+                      >
+                        {customerLookupMessage.text}
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Customer selection for multiple matches */}
+                {showCustomerSelection && customerMatches.length > 0 && (
+                  <div className="p-4 bg-purple-50 border border-purple-200 rounded-lg">
+                    <h4 className="font-medium text-purple-800 mb-3">Select the correct customer:</h4>
+                    <div className="space-y-2">
+                      {customerMatches.map((match, index) => (
+                        <button
+                          key={match.customer.id}
+                          onClick={() => handleCustomerSelection(match.customer)}
+                          className="w-full p-3 text-left bg-white border border-purple-200 rounded-lg hover:bg-purple-50 hover:border-purple-300 transition-colors"
+                        >
+                          <div className="flex justify-between items-start">
+                            <div>
+                              <div className="font-medium text-gray-900">{formatCustomerDisplay(match.customer)}</div>
+                              <div className="text-sm text-purple-600 mt-1">
+                                {match.customer.rewardsPoints} reward points • Match: {match.matchType} (
+                                {match.confidence} confidence)
+                              </div>
+                            </div>
+                            <div className="text-xs text-gray-500">#{index + 1}</div>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                    <div className="mt-3 text-xs text-purple-600">
+                      💡 Click on the customer that matches your order. If none match, you can continue to create a new
+                      customer.
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 
-            {/* Rewards Display */}
-            {customer && (
+            {/* Rewards Display - Now prominently placed after customer details */}
+            {customer && !isLoadingCustomer && !showCustomerSelection && (
               <RewardsDisplay
                 customer={customer}
                 orderSubtotal={subtotalAfterDiscount}
@@ -754,7 +964,8 @@ export default function PastryOrderSystem() {
                   !pickupTime ||
                   !paymentMethod ||
                   puffItems.length === 0 ||
-                  isSubmitting
+                  isSubmitting ||
+                  showCustomerSelection
                 }
                 size="lg"
               >
@@ -786,8 +997,15 @@ export default function PastryOrderSystem() {
                 </div>
               )}
 
+              {showCustomerSelection && (
+                <p className="text-purple-600 text-center text-sm">
+                  ⚠️ Please select a customer from the options above before submitting the order.
+                </p>
+              )}
+
               {(!customerName || !pickupDate || !pickupTime || !paymentMethod || puffItems.length === 0) &&
-                !submitMessage && (
+                !submitMessage &&
+                !showCustomerSelection && (
                   <p className="text-red-500 text-center text-sm">
                     ⚠️ Please complete required fields: Customer Name, Pickup Date, Pickup Time, Payment Method, and add
                     at least one puff item

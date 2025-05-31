@@ -152,8 +152,8 @@ export const prepareOrderForFirestore = (orderData: any): Omit<FirestoreOrder, "
     isPaid: orderData.isPaid,
     status: orderData.status || "pending",
     createdAt: orderData.createdAt || new Date().toISOString(),
-    // Rewards fields
-    customerId: orderData.customerId,
+    // Rewards fields - ensure they're never undefined
+    customerId: orderData.customerId || null,
     pointsEarned: orderData.pointsEarned || 0,
     pointsRedeemed: orderData.pointsRedeemed || 0,
     rewardsDiscountAmount: orderData.rewardsDiscountAmount || 0,

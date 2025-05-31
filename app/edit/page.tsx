@@ -10,6 +10,9 @@ import { Separator } from "@/components/ui/separator"
 import { Calendar, Package, Plus, Minus, Trash2, Save, ArrowLeft, AlertCircle, CheckCircle } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { updateOrder, prepareOrderForFirestore } from "@/lib/firestore"
+// Add these imports at the top
+import { findCustomer, type Customer } from "@/lib/rewards"
+import RewardsDisplay from "@/components/rewards-display"
 
 interface PuffItem {
   id: string
@@ -35,9 +38,20 @@ export default function EditOrderPage() {
   const [firestoreOrderId, setFirestoreOrderId] = useState("")
   const [isUpdating, setIsUpdating] = useState(false)
   const [updateMessage, setUpdateMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
+  // Add these state variables after the existing state
+  const [customer, setCustomer] = useState<Customer | null>(null)
+  const [isLoadingCustomer, setIsLoadingCustomer] = useState(false)
+  const [useRewardsRedemption, setUseRewardsRedemption] = useState(false)
+  // First, add these state variables after the existing state declarations
+  const [originalCustomerId, setOriginalCustomerId] = useState<string | undefined>(undefined)
+  const [originalPointsEarned, setOriginalPointsEarned] = useState<number | undefined>(undefined)
+  const [originalPointsRedeemed, setOriginalPointsRedeemed] = useState<number | undefined>(undefined)
+  const [originalRewardsDiscountAmount, setOriginalRewardsDiscountAmount] = useState<number | undefined>(undefined)
+  const [originalCustomerRewardsBalance, setOriginalCustomerRewardsBalance] = useState<number | undefined>(undefined)
 
   const router = useRouter()
 
+  // Then, update the useEffect that loads the order data to also load the rewards-related fields
   useEffect(() => {
     // Load order data for editing
     const editOrderData = localStorage.getItem("editOrder")
@@ -54,6 +68,13 @@ export default function EditOrderPage() {
       setDeliveryAddress(order.deliveryAddress === "Not provided" ? "" : order.deliveryAddress)
       setPaymentMethod(order.paymentMethod === "Not provided" ? "" : order.paymentMethod)
       setDiscount(order.discountPercent)
+
+      // Store original rewards-related fields
+      setOriginalCustomerId(order.customerId)
+      setOriginalPointsEarned(order.pointsEarned)
+      setOriginalPointsRedeemed(order.pointsRedeemed)
+      setOriginalRewardsDiscountAmount(order.rewardsDiscountAmount)
+      setOriginalCustomerRewardsBalance(order.customerRewardsBalance)
 
       // Convert items back to puff items format
       const convertedItems = order.items.map((item: any, index: number) => ({
@@ -73,6 +94,61 @@ export default function EditOrderPage() {
       router.push("/history")
     }
   }, [router])
+
+  // Add customer search effect after the existing useEffect
+  useEffect(() => {
+    const searchCustomer = async () => {
+      if (
+        (!customerName.trim() && !phoneEmail.trim()) ||
+        (customerName.trim().length < 2 && phoneEmail.trim().length < 2)
+      ) {
+        setCustomer(null)
+        setUseRewardsRedemption(false)
+        return
+      }
+
+      setIsLoadingCustomer(true)
+      try {
+        let foundCustomer = null
+
+        // Check if both name and phone/email are provided
+        if (customerName.trim() && phoneEmail.trim()) {
+          const isEmail = phoneEmail.includes("@")
+          const phone = isEmail ? "" : phoneEmail
+          const email = isEmail ? phoneEmail : ""
+
+          // Find customer by name and either phone or email
+          foundCustomer = await findCustomer(customerName, phone, email)
+        } else if (customerName.trim()) {
+          // If only name is provided, search by name
+          foundCustomer = await findCustomer(customerName, "", "")
+        } else if (phoneEmail.trim()) {
+          // If only phone/email is provided, search by phone/email
+          const isEmail = phoneEmail.includes("@")
+          const phone = isEmail ? "" : phoneEmail
+          const email = isEmail ? phoneEmail : ""
+          foundCustomer = await findCustomer("", phone, email)
+        }
+
+        if (foundCustomer) {
+          // Customer found
+          setCustomer(foundCustomer)
+        } else {
+          // Customer not found
+          setCustomer(null)
+        }
+        setUseRewardsRedemption(false)
+      } catch (error) {
+        console.error("Error searching for customer:", error)
+        setCustomer(null)
+      } finally {
+        setIsLoadingCustomer(false)
+      }
+    }
+
+    const timeoutId = setTimeout(searchCustomer, 500)
+    return () => clearTimeout(timeoutId)
+  }, [customerName, phoneEmail])
 
   const addPuffItem = () => {
     const newItem: PuffItem = {
@@ -161,6 +237,7 @@ export default function EditOrderPage() {
     "Dubai Chocolate Puffs": 3.3,
   }
 
+  // Now update the handleSaveOrder function to include the rewards-related fields
   const handleSaveOrder = async () => {
     if (!customerName || !pickupDate || !pickupTime || puffItems.length === 0) {
       return
@@ -180,6 +257,20 @@ export default function EditOrderPage() {
       const calculatedTaxRate = isCashPayment ? 0 : taxRate
       const calculatedTaxAmount = isCashPayment ? 0 : subtotalAfterDiscount * taxRate
       const calculatedFinalTotal = subtotalAfterDiscount + deliveryFeeAmount + calculatedTaxAmount
+
+      // Calculate points earned (1 point per $1 spent, rounded down)
+      const pointsEarned = Math.floor(subtotalAfterDiscount)
+
+      // Calculate rewards discount if applicable
+      let rewardsDiscountAmount = 0
+      let pointsRedeemed = 0
+
+      if (useRewardsRedemption && customer && customer.rewardsBalance >= 100) {
+        rewardsDiscountAmount = subtotalAfterDiscount * 0.1 // 10% discount
+        pointsRedeemed = 100 // 100 points for 10% discount
+      }
+
+      const finalSubtotalAfterRewards = subtotalAfterDiscount - rewardsDiscountAmount
 
       // Prepare updated order data
       const updatedOrderData = {
@@ -207,7 +298,15 @@ export default function EditOrderPage() {
         taxRate: calculatedTaxRate,
         finalTotal: calculatedFinalTotal,
         isPaid: true,
-        createdAt: new Date().toISOString(),
+
+        // Include rewards-related fields, using original values if not modified
+        customerId: customer ? customer.id : originalCustomerId || null,
+        pointsEarned: pointsEarned,
+        pointsRedeemed: useRewardsRedemption ? pointsRedeemed : originalPointsRedeemed || 0,
+        rewardsDiscountAmount: useRewardsRedemption ? rewardsDiscountAmount : originalRewardsDiscountAmount || 0,
+        customerRewardsBalance: customer
+          ? customer.rewardsBalance - pointsRedeemed + pointsEarned
+          : originalCustomerRewardsBalance || 0,
       }
 
       // Update in Firestore
@@ -295,7 +394,28 @@ export default function EditOrderPage() {
                   />
                 </div>
               </div>
+              {customer && !isLoadingCustomer && (
+                <div className="mt-4 p-3 rounded-md bg-green-50 border border-green-200 text-green-800">
+                  Customer Found! - {customer.name} - Rewards Balance: {customer.rewardsBalance}
+                </div>
+              )}
+
+              {!customer && customerName.trim() !== "" && phoneEmail.trim() !== "" && !isLoadingCustomer && (
+                <div className="mt-4 p-3 rounded-md bg-blue-50 border border-blue-200 text-blue-800">
+                  New Customer - A new customer account will be created.
+                </div>
+              )}
             </div>
+            {/* Rewards Display for Edit Page */}
+            {customer && !isLoadingCustomer && (
+              <RewardsDisplay
+                customer={customer}
+                orderSubtotal={subtotalAfterDiscount}
+                onRedemptionToggle={setUseRewardsRedemption}
+                useRedemption={useRewardsRedemption}
+                isLoading={isLoadingCustomer}
+              />
+            )}
 
             {/* Pickup Details */}
             <div>
@@ -558,6 +678,13 @@ export default function EditOrderPage() {
                     </div>
                   )}
 
+                  {useRewardsRedemption && customer && customer.rewardsBalance >= 100 && (
+                    <div className="flex justify-between text-blue-600">
+                      <span>Rewards Redemption (10%):</span>
+                      <span>-${(subtotalAfterDiscount * 0.1).toFixed(2)}</span>
+                    </div>
+                  )}
+
                   <div className="flex justify-between font-semibold text-amber-800 bg-amber-50 p-2 rounded">
                     <span>Pre-Tax Subtotal:</span>
                     <span>${subtotalAfterDiscount.toFixed(2)}</span>
@@ -587,6 +714,29 @@ export default function EditOrderPage() {
                         </div>
                         <div>
                           <strong>Fee:</strong> ${deliveryFeeAmount.toFixed(2)}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+                  {customer && (
+                    <div className="mt-4 p-3 bg-green-50 rounded-lg border border-green-200">
+                      <h4 className="flex items-center gap-2 font-medium text-green-800 mb-2">
+                        <CheckCircle className="w-4 h-4" /> Rewards Details:
+                      </h4>
+                      <div className="text-sm text-green-700">
+                        <div>
+                          <strong>Points Earned:</strong> {Math.floor(subtotalAfterDiscount)}
+                        </div>
+                        {useRewardsRedemption && customer.rewardsBalance >= 100 && (
+                          <div>
+                            <strong>Points Redeemed:</strong> 100
+                          </div>
+                        )}
+                        <div>
+                          <strong>New Balance:</strong>{" "}
+                          {customer.rewardsBalance -
+                            (useRewardsRedemption ? 100 : 0) +
+                            Math.floor(subtotalAfterDiscount)}
                         </div>
                       </div>
                     </div>

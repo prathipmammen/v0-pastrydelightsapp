@@ -376,6 +376,23 @@ export default function HistoryPage() {
                               </div>
                             )}
                           </div>
+                          {/* Add this after the existing order details */}
+                          {order.pointsEarned > 0 || order.pointsRedeemed > 0 || order.customerRewardsBalance > 0 ? (
+                            <div className="mt-2 p-2 bg-purple-50 rounded border border-purple-200">
+                              <div className="text-xs text-purple-700">
+                                <strong>Rewards:</strong>
+                                {order.pointsEarned > 0 && (
+                                  <span className="text-green-600"> +{order.pointsEarned} earned</span>
+                                )}
+                                {order.pointsRedeemed > 0 && (
+                                  <span className="text-red-600"> -{order.pointsRedeemed} redeemed</span>
+                                )}
+                                {order.customerRewardsBalance > 0 && (
+                                  <span> • Balance: {order.customerRewardsBalance} pts</span>
+                                )}
+                              </div>
+                            </div>
+                          ) : null}
                         </div>
 
                         <div className="text-center lg:text-right space-y-3">
