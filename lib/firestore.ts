@@ -41,6 +41,12 @@ export interface FirestoreOrder {
   status: "pending" | "completed"
   createdAt: string | Timestamp
   updatedAt?: string | Timestamp
+  // Rewards fields
+  customerId?: string
+  pointsEarned?: number
+  pointsRedeemed?: number
+  rewardsDiscountAmount?: number
+  customerRewardsBalance?: number
 }
 
 const ORDERS_COLLECTION = "orders"
@@ -146,6 +152,12 @@ export const prepareOrderForFirestore = (orderData: any): Omit<FirestoreOrder, "
     isPaid: orderData.isPaid,
     status: orderData.status || "pending",
     createdAt: orderData.createdAt || new Date().toISOString(),
+    // Rewards fields
+    customerId: orderData.customerId,
+    pointsEarned: orderData.pointsEarned || 0,
+    pointsRedeemed: orderData.pointsRedeemed || 0,
+    rewardsDiscountAmount: orderData.rewardsDiscountAmount || 0,
+    customerRewardsBalance: orderData.customerRewardsBalance || 0,
   }
 }
 
@@ -175,6 +187,10 @@ export const exportOrdersToCSV = (orders: FirestoreOrder[]): void => {
     "Status",
     "Order Date",
     "Firebase ID",
+    "Points Earned",
+    "Points Redeemed",
+    "Rewards Discount",
+    "Customer Balance",
   ]
 
   const csvContent = [
@@ -206,6 +222,10 @@ export const exportOrdersToCSV = (orders: FirestoreOrder[]): void => {
         order.status,
         order.createdAt,
         order.id || "",
+        order.pointsEarned || 0,
+        order.pointsRedeemed || 0,
+        (order.rewardsDiscountAmount || 0).toFixed(2),
+        order.customerRewardsBalance || 0,
       ].join(",")
     }),
   ].join("\n")

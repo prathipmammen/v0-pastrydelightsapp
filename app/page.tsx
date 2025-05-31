@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
@@ -21,8 +21,9 @@ import {
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { addOrder, prepareOrderForFirestore } from "@/lib/firestore"
-// Import the Firebase banner
+import { findCustomer, createCustomer, processOrderRewards, calculatePointsEarned, type Customer } from "@/lib/rewards"
 import FirebaseBanner from "@/components/firebase-banner"
+import RewardsDisplay from "@/components/rewards-display"
 
 interface PuffItem {
   id: string
@@ -47,7 +48,44 @@ export default function PastryOrderSystem() {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [submitMessage, setSubmitMessage] = useState<{ type: "success" | "error"; text: string } | null>(null)
 
+  // Rewards state
+  const [customer, setCustomer] = useState<Customer | null>(null)
+  const [isLoadingCustomer, setIsLoadingCustomer] = useState(false)
+  const [useRewardsRedemption, setUseRewardsRedemption] = useState(false)
+
   const router = useRouter()
+
+  // Auto-search for customer when contact info changes
+  useEffect(() => {
+    const searchCustomer = async () => {
+      if (!customerName.trim() && !phoneEmail.trim()) {
+        setCustomer(null)
+        setUseRewardsRedemption(false)
+        return
+      }
+
+      setIsLoadingCustomer(true)
+      try {
+        // Extract phone and email from phoneEmail field
+        const isEmail = phoneEmail.includes("@")
+        const phone = isEmail ? "" : phoneEmail
+        const email = isEmail ? phoneEmail : ""
+
+        const foundCustomer = await findCustomer(customerName, phone, email)
+        setCustomer(foundCustomer)
+        setUseRewardsRedemption(false) // Reset redemption when customer changes
+      } catch (error) {
+        console.error("Error searching for customer:", error)
+        setCustomer(null)
+      } finally {
+        setIsLoadingCustomer(false)
+      }
+    }
+
+    // Debounce the search
+    const timeoutId = setTimeout(searchCustomer, 500)
+    return () => clearTimeout(timeoutId)
+  }, [customerName, phoneEmail])
 
   const addPuffItem = () => {
     const newItem: PuffItem = {
@@ -80,9 +118,13 @@ export default function PastryOrderSystem() {
   const discountAmount = Number.parseFloat(discount.replace("%", "")) / 100
   const subtotalAfterDiscount = puffSubtotal * (1 - discountAmount)
 
+  // Calculate rewards discount
+  const rewardsDiscountAmount = useRewardsRedemption && customer ? subtotalAfterDiscount * 0.1 : 0
+  const finalSubtotalAfterRewards = subtotalAfterDiscount - rewardsDiscountAmount
+
   const taxRate = 0.0825
-  const taxAmount = subtotalAfterDiscount * taxRate
-  const finalTotal = subtotalAfterDiscount + deliveryFeeAmount + taxAmount
+  const taxAmount = finalSubtotalAfterRewards * taxRate
+  const finalTotal = finalSubtotalAfterRewards + deliveryFeeAmount + taxAmount
 
   const categories = ["Savory", "Veggie", "Sweet"]
 
@@ -148,11 +190,30 @@ export default function PastryOrderSystem() {
     try {
       const receiptId = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
 
+      // Handle customer creation/lookup
+      let currentCustomer = customer
+      if (!currentCustomer) {
+        // Extract phone and email from phoneEmail field
+        const isEmail = phoneEmail.includes("@")
+        const phone = isEmail ? "" : phoneEmail
+        const email = isEmail ? phoneEmail : ""
+
+        currentCustomer = await createCustomer(customerName, phone, email)
+      }
+
       // Calculate tax - set to 0 for cash payments
       const isCashPayment = paymentMethod === "cash"
       const calculatedTaxRate = isCashPayment ? 0 : taxRate
-      const calculatedTaxAmount = isCashPayment ? 0 : subtotalAfterDiscount * taxRate
-      const calculatedFinalTotal = subtotalAfterDiscount + deliveryFeeAmount + calculatedTaxAmount
+      const calculatedTaxAmount = isCashPayment ? 0 : finalSubtotalAfterRewards * taxRate
+      const calculatedFinalTotal = finalSubtotalAfterRewards + deliveryFeeAmount + calculatedTaxAmount
+
+      // Process rewards
+      const rewardsResult = await processOrderRewards(
+        currentCustomer,
+        subtotalAfterDiscount, // Use subtotal before rewards discount for points calculation
+        receiptId,
+        useRewardsRedemption,
+      )
 
       const orderData = {
         receiptId,
@@ -180,6 +241,12 @@ export default function PastryOrderSystem() {
         finalTotal: calculatedFinalTotal,
         isPaid: true,
         createdAt: new Date().toISOString(),
+        // Rewards data
+        customerId: currentCustomer.id,
+        pointsEarned: rewardsResult.pointsEarned,
+        pointsRedeemed: rewardsResult.pointsRedeemed,
+        rewardsDiscountAmount: rewardsResult.discountAmount,
+        customerRewardsBalance: rewardsResult.newPointsBalance,
       }
 
       // Save to Firestore
@@ -218,10 +285,9 @@ export default function PastryOrderSystem() {
         backgroundAttachment: "fixed",
       }}
     >
-      {/* Find the div that contains the main content (after the background style div)
-      Add the FirebaseBanner component at the top of the content */}
       <div className="max-w-4xl mx-auto flex-grow w-full">
         <FirebaseBanner />
+
         {/* Main Order Form */}
         <Card className="bg-amber-50/95 backdrop-blur-sm border-amber-200">
           <CardHeader className="bg-amber-100/95 border-b border-amber-200">
@@ -267,6 +333,17 @@ export default function PastryOrderSystem() {
                 </div>
               </div>
             </div>
+
+            {/* Rewards Display */}
+            {customer && (
+              <RewardsDisplay
+                customer={customer}
+                orderSubtotal={subtotalAfterDiscount}
+                onRedemptionToggle={setUseRewardsRedemption}
+                useRedemption={useRewardsRedemption}
+                isLoading={isLoadingCustomer}
+              />
+            )}
 
             {/* Pickup Details */}
             <div>
@@ -529,9 +606,19 @@ export default function PastryOrderSystem() {
                     <span>${subtotalAfterDiscount.toFixed(2)}</span>
                   </div>
 
+                  {useRewardsRedemption && rewardsDiscountAmount > 0 && (
+                    <div className="flex justify-between text-purple-600">
+                      <span>{discountAmount > 0 ? "4." : "3."} Rewards Redemption (10%):</span>
+                      <span>-${rewardsDiscountAmount.toFixed(2)}</span>
+                    </div>
+                  )}
+
                   {deliveryRequired.includes("Delivery") && (
                     <div className="flex justify-between text-blue-600">
-                      <span>{discountAmount > 0 ? "4." : "3."} Delivery Fee:</span>
+                      <span>
+                        {useRewardsRedemption ? (discountAmount > 0 ? "5." : "4.") : discountAmount > 0 ? "4." : "3."}{" "}
+                        Delivery Fee:
+                      </span>
                       <span>+${deliveryFeeAmount.toFixed(2)}</span>
                     </div>
                   )}
@@ -539,12 +626,20 @@ export default function PastryOrderSystem() {
                   <div className="flex justify-between">
                     <span>
                       {deliveryRequired.includes("Delivery")
-                        ? discountAmount > 0
-                          ? "5."
-                          : "4."
-                        : discountAmount > 0
-                          ? "4."
-                          : "3."}{" "}
+                        ? useRewardsRedemption
+                          ? discountAmount > 0
+                            ? "6."
+                            : "5."
+                          : discountAmount > 0
+                            ? "5."
+                            : "4."
+                        : useRewardsRedemption
+                          ? discountAmount > 0
+                            ? "5."
+                            : "4."
+                          : discountAmount > 0
+                            ? "4."
+                            : "3."}{" "}
                       Tax {paymentMethod === "cash" ? "(0% for Cash)" : "(8.25%)"}:
                     </span>
                     <span>+${paymentMethod === "cash" ? "0.00" : taxAmount.toFixed(2)}</span>
@@ -555,9 +650,42 @@ export default function PastryOrderSystem() {
                   <div className="flex justify-between text-lg sm:text-xl font-bold text-amber-800 bg-amber-100 p-3 rounded-lg">
                     <span>Final Total:</span>
                     <span>
-                      ${(paymentMethod === "cash" ? subtotalAfterDiscount + deliveryFeeAmount : finalTotal).toFixed(2)}
+                      $
+                      {(paymentMethod === "cash" ? finalSubtotalAfterRewards + deliveryFeeAmount : finalTotal).toFixed(
+                        2,
+                      )}
                     </span>
                   </div>
+
+                  {/* Points Preview */}
+                  {customer && (
+                    <div className="mt-4 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                      <h4 className="flex items-center gap-2 font-medium text-purple-800 mb-2">🎁 Rewards Preview:</h4>
+                      <div className="text-sm text-purple-700 space-y-1">
+                        <div className="flex justify-between">
+                          <span>Points you'll earn:</span>
+                          <span className="font-medium">
+                            +{calculatePointsEarned(finalSubtotalAfterRewards)} points
+                          </span>
+                        </div>
+                        {useRewardsRedemption && (
+                          <div className="flex justify-between">
+                            <span>Points redeemed:</span>
+                            <span className="font-medium">-100 points</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between font-semibold border-t border-purple-200 pt-1">
+                          <span>New balance:</span>
+                          <span>
+                            {customer.rewardsPoints +
+                              calculatePointsEarned(finalSubtotalAfterRewards) -
+                              (useRewardsRedemption ? 100 : 0)}{" "}
+                            points
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  )}
 
                   {deliveryRequired.includes("Delivery") && (
                     <div className="mt-4 p-3 bg-blue-50 rounded-lg border border-blue-200">
@@ -675,7 +803,6 @@ export default function PastryOrderSystem() {
             </div>
           </CardContent>
         </Card>
-        {/* Firebase Status Component - Remove after testing */}
       </div>
 
       {/* Navigation Footer - Always at bottom */}

@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Printer } from "lucide-react"
+import { Printer, Gift, Star } from "lucide-react"
 
 interface ReceiptItem {
   name: string
@@ -32,6 +32,11 @@ interface ReceiptProps {
   taxRate: number
   finalTotal: number
   isPaid: boolean
+  // Rewards fields
+  pointsEarned?: number
+  pointsRedeemed?: number
+  rewardsDiscountAmount?: number
+  customerRewardsBalance?: number
 }
 
 export default function Receipt({
@@ -53,6 +58,11 @@ export default function Receipt({
   taxRate,
   finalTotal,
   isPaid,
+  // Rewards fields
+  pointsEarned = 0,
+  pointsRedeemed = 0,
+  rewardsDiscountAmount = 0,
+  customerRewardsBalance = 0,
 }: ReceiptProps) {
   const handlePrintPDF = () => {
     window.print()
@@ -195,17 +205,41 @@ export default function Receipt({
                   <span>${preTaxSubtotal.toFixed(2)}</span>
                 </div>
 
+                {rewardsDiscountAmount > 0 && (
+                  <div className="flex justify-between text-purple-600">
+                    <span>{discount > 0 ? "4." : "3."} Rewards Redemption (10%):</span>
+                    <span>-${rewardsDiscountAmount.toFixed(2)}</span>
+                  </div>
+                )}
+
                 {isDelivery && deliveryFee > 0 && (
                   <div className="flex justify-between text-blue-600">
-                    <span>{discount > 0 ? "4." : "3."} Delivery Fee:</span>
+                    <span>
+                      {rewardsDiscountAmount > 0 ? (discount > 0 ? "5." : "4.") : discount > 0 ? "4." : "3."} Delivery
+                      Fee:
+                    </span>
                     <span>+${deliveryFee.toFixed(2)}</span>
                   </div>
                 )}
 
                 <div className="flex justify-between">
                   <span>
-                    {isDelivery ? (discount > 0 ? "5." : "4.") : discount > 0 ? "4." : "3."} Tax{" "}
-                    {paymentMethod === "cash" ? "(0% for Cash)" : `(${(taxRate * 100).toFixed(2)}%)`}:
+                    {isDelivery
+                      ? rewardsDiscountAmount > 0
+                        ? discount > 0
+                          ? "6."
+                          : "5."
+                        : discount > 0
+                          ? "5."
+                          : "4."
+                      : rewardsDiscountAmount > 0
+                        ? discount > 0
+                          ? "5."
+                          : "4."
+                        : discount > 0
+                          ? "4."
+                          : "3."}{" "}
+                    Tax {paymentMethod === "cash" ? "(0% for Cash)" : `(${(taxRate * 100).toFixed(2)}%)`}:
                   </span>
                   <span>+${tax.toFixed(2)}</span>
                 </div>
@@ -241,6 +275,51 @@ export default function Receipt({
                 </div>
               )}
             </div>
+
+            {/* Rewards Summary */}
+            {(pointsEarned > 0 || pointsRedeemed > 0 || customerRewardsBalance > 0) && (
+              <div className="bg-gradient-to-r from-purple-50 to-pink-50 p-3 rounded-lg border border-purple-200 mb-4 print:bg-gray-100 print:border-gray-300">
+                <h4 className="flex items-center gap-2 font-semibold text-purple-800 mb-3 text-sm">
+                  <Gift className="w-4 h-4" />🎁 Rewards Summary
+                </h4>
+
+                <div className="space-y-2 text-xs">
+                  {pointsEarned > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-purple-700">Points earned this order:</span>
+                      <span className="font-semibold text-green-600">+{pointsEarned} points</span>
+                    </div>
+                  )}
+
+                  {pointsRedeemed > 0 && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-purple-700">Points redeemed:</span>
+                      <span className="font-semibold text-red-600">-{pointsRedeemed} points</span>
+                    </div>
+                  )}
+
+                  <Separator className="my-2" />
+
+                  <div className="flex justify-between items-center bg-white/60 p-2 rounded">
+                    <span className="font-medium text-purple-800 flex items-center gap-1">
+                      <Star className="w-3 h-3" />
+                      Current rewards balance:
+                    </span>
+                    <span className="font-bold text-purple-800">{customerRewardsBalance} points</span>
+                  </div>
+
+                  <div className="text-center text-purple-600 text-xs mt-2">
+                    💡 Earn 1 point per $1 spent • Redeem 100 points for 10% off
+                  </div>
+
+                  {customerRewardsBalance >= 100 && (
+                    <div className="text-center bg-green-100 text-green-800 p-2 rounded text-xs font-medium">
+                      🎉 You can redeem 100 points for 10% off your next order!
+                    </div>
+                  )}
+                </div>
+              </div>
+            )}
 
             {/* Biblical Quote - Compact */}
             <div className="text-center text-amber-600 italic text-xs border-t border-amber-200 pt-3 print:border-gray-300">
