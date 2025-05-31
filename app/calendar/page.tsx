@@ -453,13 +453,400 @@ export default function CalendarPage() {
     )
   }
 
+  // Mobile version - now fully functional
   if (isMobile) {
-    // Mobile version - simplified
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
-        <div className="text-center">
-          <h1 className="text-xl font-semibold text-gray-900 mb-4">Calendar View</h1>
-          <p className="text-gray-600">Please use desktop for full calendar experience</p>
+      <div className="min-h-screen bg-gray-50">
+        {/* Connection Status & Error Messages */}
+        {error && (
+          <div className="mx-4 pt-4 pb-2">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600" />
+              <span className="text-red-800 text-sm">
+                <strong>Firebase Error:</strong> {error}
+              </span>
+            </div>
+          </div>
+        )}
+
+        <div className="bg-white min-h-screen">
+          {/* Mobile Header */}
+          <div className="bg-gray-50 border-b border-gray-200 p-4">
+            <div className="text-center">
+              <h1 className="text-lg font-semibold text-gray-900 mb-2">Order Calendar</h1>
+              <div className="flex items-center justify-center gap-2">
+                <Badge
+                  className={`text-xs flex items-center gap-1 ${
+                    isConnected ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                  {isConnected ? "Live" : "Offline"}
+                </Badge>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Statistics */}
+          <div className="bg-gray-50 border-b border-gray-200 p-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <div className="text-xl font-bold text-orange-600">{currentPeriodStats.totalOrders}</div>
+                <div className="text-xs text-orange-600 font-medium">Orders</div>
+              </div>
+              <div className="text-center">
+                <div className="text-xl font-bold text-green-600">${currentPeriodStats.totalRevenue.toFixed(0)}</div>
+                <div className="text-xs text-green-600 font-medium">Revenue</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile View Mode Selector */}
+          <div className="border-b border-gray-200 bg-white p-4">
+            <div className="flex bg-gray-100 rounded-lg p-1">
+              {(["Day", "Week", "Month"] as const).map((mode) => (
+                <Button
+                  key={mode}
+                  variant={viewMode === mode ? "default" : "ghost"}
+                  size="sm"
+                  onClick={() => setViewMode(mode)}
+                  className={`flex-1 text-xs px-3 py-2 ${
+                    viewMode === mode ? "bg-white shadow-sm text-gray-900" : "text-gray-600 hover:text-gray-900"
+                  }`}
+                >
+                  {mode}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Mobile Navigation */}
+          <div className="border-b border-gray-200 bg-white">
+            <div className="flex items-center justify-between p-4">
+              <h2 className="text-lg font-medium text-gray-900">{getDisplayTitle()}</h2>
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("prev")}
+                  className="text-gray-600 hover:text-gray-900 p-2"
+                >
+                  <ChevronLeft className="w-4 h-4" />
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={goToToday}
+                  className="text-gray-700 border-gray-300 hover:bg-gray-50 px-3 text-xs"
+                >
+                  Today
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => navigate("next")}
+                  className="text-gray-600 hover:text-gray-900 p-2"
+                >
+                  <ChevronRight className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+          </div>
+
+          {/* Mobile Content */}
+          <div className="p-4">
+            {viewMode === "Day" && (
+              <div>
+                <h3 className="text-base font-semibold text-gray-900 mb-4">
+                  {currentDate.toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </h3>
+
+                {(() => {
+                  const dateKey = formatDateKey(currentDate)
+                  const dayOrders = filteredOrdersByDate[dateKey] || []
+
+                  return dayOrders.length > 0 ? (
+                    <div className="space-y-3">
+                      {dayOrders
+                        .sort((a, b) => a.deliveryTime.localeCompare(b.deliveryTime))
+                        .map((order) => (
+                          <Card
+                            key={order.id}
+                            className="hover:shadow-md transition-shadow cursor-pointer"
+                            onClick={() => handleViewOrder(order)}
+                          >
+                            <CardContent className="p-4">
+                              <div className="flex items-start justify-between mb-2">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-900 text-sm">{order.customerName}</div>
+                                  <div className="text-gray-600 flex items-center gap-1 text-xs">
+                                    <Clock className="w-3 h-3" />
+                                    {formatTime(order.deliveryTime)}
+                                  </div>
+                                </div>
+                                <Badge
+                                  className={`text-xs ${
+                                    order.paymentStatus === "PAID" || order.isPaid
+                                      ? "bg-green-100 text-green-800"
+                                      : "bg-red-100 text-red-800"
+                                  }`}
+                                >
+                                  {order.paymentStatus === "PAID" || order.isPaid ? "Paid" : "Unpaid"}
+                                </Badge>
+                              </div>
+                              <div className="text-gray-600 text-xs mb-2">
+                                {order.items.length} {order.items.length === 1 ? "item" : "items"} • $
+                                {order.finalTotal.toFixed(2)}
+                              </div>
+                              <div className="text-xs text-gray-500">
+                                {order.items.slice(0, 2).map((item, index) => (
+                                  <div key={index}>
+                                    {item.quantity}x {item.name}
+                                  </div>
+                                ))}
+                                {order.items.length > 2 && <div>+{order.items.length - 2} more...</div>}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        ))}
+                    </div>
+                  ) : (
+                    <div className="text-center text-gray-500 py-8">
+                      <CalendarDayIcon className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                      <p className="text-sm">No orders for this day</p>
+                    </div>
+                  )
+                })()}
+              </div>
+            )}
+
+            {viewMode === "Week" && (
+              <div>
+                <div className="grid grid-cols-7 gap-1 mb-4">
+                  {["S", "M", "T", "W", "T", "F", "S"].map((day) => (
+                    <div key={day} className="text-center text-xs font-medium text-gray-600 p-2">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                <div className="grid grid-cols-7 gap-1">
+                  {(() => {
+                    const startOfWeek = new Date(currentDate)
+                    startOfWeek.setDate(currentDate.getDate() - currentDate.getDay())
+
+                    const weekDays = []
+                    for (let i = 0; i < 7; i++) {
+                      const day = new Date(startOfWeek)
+                      day.setDate(startOfWeek.getDate() + i)
+                      weekDays.push(day)
+                    }
+
+                    return weekDays.map((day, index) => {
+                      const dateKey = formatDateKey(day)
+                      const dayOrders = filteredOrdersByDate[dateKey] || []
+                      const isCurrentDay = isToday(day)
+
+                      return (
+                        <div key={index} className="min-h-[80px] border border-gray-200 rounded p-1">
+                          <div className="text-center mb-1">
+                            <div
+                              className={`text-xs font-semibold ${
+                                isCurrentDay
+                                  ? "bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center mx-auto"
+                                  : "text-gray-900"
+                              }`}
+                            >
+                              {day.getDate()}
+                            </div>
+                          </div>
+
+                          <div className="space-y-1">
+                            {dayOrders.slice(0, 2).map((order, orderIndex) => (
+                              <div
+                                key={orderIndex}
+                                className={`text-xs p-1 rounded text-white cursor-pointer ${
+                                  order.paymentStatus === "PAID" || order.isPaid ? "bg-green-500" : "bg-red-500"
+                                }`}
+                                onClick={() => handleViewOrder(order)}
+                              >
+                                <div className="font-medium truncate text-xs">{formatTime(order.deliveryTime)}</div>
+                                <div className="truncate text-xs">{order.customerName}</div>
+                              </div>
+                            ))}
+                            {dayOrders.length > 2 && (
+                              <div className="text-xs text-gray-500 text-center">+{dayOrders.length - 2}</div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })
+                  })()}
+                </div>
+              </div>
+            )}
+
+            {viewMode === "Month" && (
+              <div>
+                {/* Day Headers */}
+                <div className="grid grid-cols-7 mb-2">
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                    <div key={day} className="text-center text-xs font-medium text-gray-600 p-2">
+                      {day}
+                    </div>
+                  ))}
+                </div>
+
+                {/* Calendar Days */}
+                <div className="grid grid-cols-7 gap-1">
+                  {days.map((dayInfo, index) => {
+                    const dateKey = formatDateKey(dayInfo.date)
+                    const dayOrders = filteredOrdersByDate[dateKey] || []
+                    const isCurrentDay = isToday(dayInfo.date)
+                    const isSelected = selectedDate === dateKey
+
+                    return (
+                      <div
+                        key={index}
+                        className={`min-h-[60px] border border-gray-200 p-1 cursor-pointer hover:bg-gray-50 transition-colors ${
+                          isSelected ? "bg-blue-50 border-blue-200" : ""
+                        } ${!dayInfo.isCurrentMonth ? "bg-gray-50" : "bg-white"}`}
+                        onClick={() => handleDateClick(dayInfo.date)}
+                      >
+                        {/* Date Number */}
+                        <div className="flex justify-between items-start mb-1">
+                          <span
+                            className={`text-xs font-medium ${
+                              !dayInfo.isCurrentMonth ? "text-gray-400" : "text-gray-900"
+                            } ${
+                              isCurrentDay
+                                ? "bg-red-500 text-white rounded-full w-4 h-4 flex items-center justify-center"
+                                : ""
+                            }`}
+                          >
+                            {dayInfo.day}
+                          </span>
+                          {dayOrders.length > 0 && (
+                            <Badge className="bg-amber-100 text-amber-800 text-xs px-1 py-0">{dayOrders.length}</Badge>
+                          )}
+                        </div>
+
+                        {/* Orders indicator */}
+                        {dayOrders.length > 0 && (
+                          <div className="space-y-1">
+                            <div
+                              className={`h-1 rounded ${
+                                dayOrders.some((order) => order.paymentStatus === "PAID" || order.isPaid)
+                                  ? "bg-green-400"
+                                  : "bg-red-400"
+                              }`}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {/* Selected Date Details */}
+                {selectedDate && filteredOrdersByDate[selectedDate] && (
+                  <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+                    <h4 className="font-medium text-gray-900 mb-2 text-sm">
+                      {new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", {
+                        weekday: "short",
+                        month: "short",
+                        day: "numeric",
+                      })}
+                    </h4>
+                    <div className="space-y-2">
+                      {filteredOrdersByDate[selectedDate]
+                        .sort((a, b) => a.deliveryTime.localeCompare(b.deliveryTime))
+                        .slice(0, 3)
+                        .map((order) => (
+                          <div
+                            key={order.id}
+                            className="flex items-center justify-between p-2 bg-white rounded border cursor-pointer"
+                            onClick={() => handleViewOrder(order)}
+                          >
+                            <div className="flex-1">
+                              <div className="font-medium text-gray-900 text-xs">{order.customerName}</div>
+                              <div className="text-gray-600 text-xs">{formatTime(order.deliveryTime)}</div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-medium text-gray-900 text-xs">${order.finalTotal.toFixed(2)}</div>
+                              <Badge
+                                className={`text-xs ${
+                                  order.paymentStatus === "PAID" || order.isPaid
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {order.paymentStatus === "PAID" || order.isPaid ? "Paid" : "Unpaid"}
+                              </Badge>
+                            </div>
+                          </div>
+                        ))}
+                      {filteredOrdersByDate[selectedDate].length > 3 && (
+                        <div className="text-center text-gray-500 text-xs">
+                          +{filteredOrdersByDate[selectedDate].length - 3} more orders
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Navigation Footer */}
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4">
+          <div className="flex gap-0 w-full">
+            <Button
+              variant="outline"
+              className="flex-1 flex items-center justify-center gap-2 text-xs border-gray-300 text-gray-700 hover:bg-gray-50 rounded-none first:rounded-l-lg"
+              onClick={() => router.push("/")}
+            >
+              <Plus className="w-4 h-4" />
+              Order
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 flex items-center justify-center gap-2 text-xs border-gray-300 text-gray-700 hover:bg-gray-50 rounded-none"
+              onClick={() => router.push("/receipt")}
+            >
+              <Receipt className="w-4 h-4" />
+              Receipt
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 flex items-center justify-center gap-2 text-xs border-gray-300 text-gray-700 hover:bg-gray-50 rounded-none"
+              onClick={() => router.push("/history")}
+            >
+              <History className="w-4 h-4" />
+              History
+            </Button>
+            <Button
+              variant="default"
+              className="flex-1 flex items-center justify-center gap-2 text-xs bg-blue-600 hover:bg-blue-700 text-white rounded-none"
+            >
+              <CalendarIcon className="w-4 h-4" />
+              Calendar
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 flex items-center justify-center gap-2 text-xs border-gray-300 text-gray-700 hover:bg-gray-50 rounded-none last:rounded-r-lg"
+              onClick={() => router.push("/trends")}
+            >
+              <TrendingUp className="w-4 h-4" />
+              Trends
+            </Button>
+          </div>
         </div>
       </div>
     )
