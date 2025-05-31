@@ -1,9 +1,16 @@
 import { initializeApp } from "firebase/app"
 import { getFirestore } from "firebase/firestore"
+import { getAuth } from "firebase/auth"
+
+// Check if Firebase API key is valid
+const apiKey = process.env.NEXT_PUBLIC_FIREBASE_API_KEY
+if (!apiKey || !apiKey.startsWith("AIza")) {
+  console.error("Invalid Firebase API key. It should start with 'AIza'.")
+}
 
 // Firebase config from your project
 const firebaseConfig = {
-  apiKey: "AIzaSyBiJzRfBfRBbH31vz_WdLbIEbBOOST8T",
+  apiKey: "AIzaSyBiRjzRFbFRbH31zYz_WdDL8IeB0OSTST8",
   authDomain: "pd-pastry-delights-e0f76.firebaseapp.com",
   projectId: "pd-pastry-delights-e0f76",
   storageBucket: "pd-pastry-delights-e0f76.appspot.com",
@@ -17,5 +24,8 @@ const app = initializeApp(firebaseConfig)
 
 // Initialize Firestore
 export const db = getFirestore(app)
+
+// Initialize Firebase Auth
+export const auth = getAuth(app)
 
 export default app

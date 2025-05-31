@@ -52,6 +52,8 @@ interface PuffItem {
 }
 
 export default function PastryOrderSystem() {
+  const router = useRouter()
+
   const [customerName, setCustomerName] = useState("")
   const [phoneEmail, setPhoneEmail] = useState("")
   const [pickupDate, setPickupDate] = useState("")
@@ -60,7 +62,7 @@ export default function PastryOrderSystem() {
   const [deliveryFee, setDeliveryFee] = useState("5.00")
   const [deliveryAddress, setDeliveryAddress] = useState("2009 overton dr, Prosper TEXAS")
   const [paymentMethod, setPaymentMethod] = useState("")
-  const [paymentStatus, setPaymentStatus] = useState<"PAID" | "UNPAID">("UNPAID") // New payment status field
+  const [paymentStatus, setPaymentStatus] = useState<"PAID" | "UNPAID">("UNPAID")
   const [discount, setDiscount] = useState("0%")
   const [puffItems, setPuffItems] = useState<PuffItem[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -85,8 +87,6 @@ export default function PastryOrderSystem() {
     newEmail: string
     contactType: "phone" | "email"
   } | null>(null)
-
-  const router = useRouter()
 
   // Helper function to check if name has both first and last name
   const hasFullName = (name: string): boolean => {
