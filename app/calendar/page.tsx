@@ -525,11 +525,7 @@ export default function CalendarPage() {
                   .map((order) => (
                     <div
                       key={order.id}
-                      className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 cursor-pointer transition-colors"
-                      onClick={() => {
-                        handleViewOrder(order)
-                        setShowDayModal(false)
-                      }}
+                      className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                     >
                       <div className="flex items-start justify-between mb-2">
                         <div className="flex-1">
@@ -552,12 +548,23 @@ export default function CalendarPage() {
                           </Badge>
                         </div>
                       </div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-gray-500 mb-2">
                         {order.items.length} {order.items.length === 1 ? "item" : "items"}
                         {order.items.length <= 2 && (
                           <span> • {order.items.map((item) => `${item.quantity}x ${item.name}`).join(", ")}</span>
                         )}
                       </div>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="w-full text-xs"
+                        onClick={() => {
+                          handleViewOrder(order)
+                          setShowDayModal(false)
+                        }}
+                      >
+                        View Receipt
+                      </Button>
                     </div>
                   ))}
               </div>
@@ -682,11 +689,11 @@ export default function CalendarPage() {
             {viewMode === "Month" && (
               <div className="p-4">
                 {/* Day Headers */}
-                <div className="grid grid-cols-7 border-b border-gray-200">
-                  {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day) => (
+                <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
+                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
                     <div
                       key={day}
-                      className="p-3 text-center text-sm font-medium text-gray-600 border-r border-gray-200 last:border-r-0"
+                      className="p-3 text-center text-sm font-semibold text-gray-700 border-r border-gray-200 last:border-r-0 min-h-[48px] flex items-center justify-center"
                     >
                       {day}
                     </div>
@@ -705,7 +712,7 @@ export default function CalendarPage() {
                       <div
                         key={index}
                         className={`
-                          min-h-[100px] border-r border-b border-gray-200 p-2 cursor-pointer hover:bg-gray-50 transition-colors
+                          min-h-[120px] border-r border-b border-gray-200 p-2 cursor-pointer hover:bg-gray-50 transition-colors
                           ${isSelected ? "bg-blue-50 border-blue-200" : ""}
                           ${!dayInfo.isCurrentMonth ? "bg-gray-50" : "bg-white"}
                         `}
@@ -735,13 +742,9 @@ export default function CalendarPage() {
                             <div
                               key={orderIndex}
                               className={`
-                                text-xs p-1 rounded text-white cursor-pointer hover:opacity-80 transition-opacity
+                                text-xs p-1 rounded text-white transition-opacity
                                 ${order.paymentStatus === "PAID" || order.isPaid ? "bg-green-500" : "bg-red-500"}
                               `}
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleViewOrder(order)
-                              }}
                             >
                               <div className="font-medium truncate">
                                 {formatTime(order.deliveryTime)} {order.customerName}
@@ -762,6 +765,52 @@ export default function CalendarPage() {
 
           {/* Day Order Summary Modal */}
           <DayOrderSummaryModal />
+          {/* Navigation Footer - Mobile */}
+          <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-sm mt-4 sticky bottom-0 border-t border-gray-200">
+            <div className="p-4 flex justify-center w-full">
+              <div className="flex flex-wrap gap-0 w-full justify-between">
+                <Button
+                  variant="outline"
+                  className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg last:rounded-r-lg"
+                  onClick={() => router.push("/")}
+                >
+                  <Plus className="w-3 h-3" />
+                  <span className="hidden sm:inline">Order</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
+                  onClick={() => router.push("/receipt")}
+                >
+                  <Receipt className="w-3 h-3" />
+                  <span className="hidden sm:inline">Receipt</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
+                  onClick={() => router.push("/history")}
+                >
+                  <History className="w-3 h-3" />
+                  <span className="hidden sm:inline">History</span>
+                </Button>
+                <Button
+                  variant="default"
+                  className="flex-1 flex items-center justify-center gap-2 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded-none"
+                >
+                  <CalendarIcon className="w-3 h-3" />
+                  <span className="hidden sm:inline">Calendar</span>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg last:rounded-r-lg"
+                  onClick={() => router.push("/trends")}
+                >
+                  <TrendingUp className="w-3 h-3" />
+                  <span className="hidden sm:inline">Trends</span>
+                </Button>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     )
