@@ -3,7 +3,7 @@
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Printer, Gift, Star } from "lucide-react"
+import { Printer, Gift, Star, CheckCircle, XCircle, CreditCard } from "lucide-react"
 
 interface ReceiptItem {
   name: string
@@ -20,6 +20,7 @@ interface ReceiptProps {
   deliveryDate: string
   deliveryTime: string
   paymentMethod: string
+  paymentStatus?: "PAID" | "UNPAID" // New payment status prop
   isDelivery: boolean
   deliveryAddress?: string
   deliveryFee: number
@@ -47,6 +48,7 @@ export default function Receipt({
   deliveryDate,
   deliveryTime,
   paymentMethod,
+  paymentStatus,
   isDelivery,
   deliveryAddress,
   deliveryFee,
@@ -73,6 +75,10 @@ export default function Receipt({
   // Calculate previous balance (before this transaction)
   const previousBalance = customerRewardsBalance - pointsEarned + pointsRedeemed
 
+  // Determine payment status (with backward compatibility)
+  const currentPaymentStatus = paymentStatus || (isPaid ? "PAID" : "UNPAID")
+  const isPaymentPaid = currentPaymentStatus === "PAID"
+
   return (
     <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
       <div className="max-w-md mx-auto">
@@ -90,6 +96,27 @@ export default function Receipt({
             {/* Receipt Header - Compact */}
             <div className="text-center mb-4">
               <h2 className="text-lg font-bold text-amber-800 mb-1">Receipt #{receiptId}</h2>
+
+              {/* Payment Status Display - Prominent */}
+              <div
+                className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg font-semibold text-sm ${
+                  isPaymentPaid
+                    ? "bg-green-100 text-green-800 border border-green-300"
+                    : "bg-red-100 text-red-800 border border-red-300"
+                }`}
+              >
+                {isPaymentPaid ? (
+                  <>
+                    <CheckCircle className="w-4 h-4" />
+                    <span>🟢 PAYMENT RECEIVED</span>
+                  </>
+                ) : (
+                  <>
+                    <XCircle className="w-4 h-4" />
+                    <span>🔴 PAYMENT PENDING</span>
+                  </>
+                )}
+              </div>
             </div>
 
             {/* Company Info and QR Code - Compact */}
@@ -146,6 +173,50 @@ export default function Receipt({
                     <span className="font-medium">🚚 Delivery:</span>
                     <span className={isDelivery ? "text-blue-600" : "text-gray-600"}>{isDelivery ? "Yes" : "No"}</span>
                   </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Payment Status Section - Enhanced */}
+            <div
+              className={`p-3 rounded-lg border mb-4 ${
+                isPaymentPaid
+                  ? "bg-green-50 border-green-200 print:bg-gray-100 print:border-gray-300"
+                  : "bg-red-50 border-red-200 print:bg-gray-100 print:border-gray-300"
+              }`}
+            >
+              <h4
+                className={`flex items-center gap-2 font-semibold mb-2 text-sm ${
+                  isPaymentPaid ? "text-green-800" : "text-red-800"
+                }`}
+              >
+                <CreditCard className="w-4 h-4" />
+                Payment Status
+              </h4>
+              <div className={`text-sm ${isPaymentPaid ? "text-green-700" : "text-red-700"}`}>
+                <div className="flex justify-between items-center">
+                  <span>Status:</span>
+                  <span className="font-semibold flex items-center gap-1">
+                    {isPaymentPaid ? (
+                      <>
+                        <CheckCircle className="w-3 h-3" />
+                        PAID
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-3 h-3" />
+                        UNPAID
+                      </>
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Method:</span>
+                  <span className="font-medium">{paymentMethod}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span>Amount:</span>
+                  <span className="font-bold">${finalTotal.toFixed(2)}</span>
                 </div>
               </div>
             </div>
@@ -256,13 +327,30 @@ export default function Receipt({
                   <span>${finalTotal.toFixed(2)}</span>
                 </div>
 
-                {isPaid && (
-                  <div className="text-center mt-2">
-                    <span className="bg-green-100 text-green-800 px-3 py-1 rounded-full font-semibold text-xs">
-                      PAID
-                    </span>
-                  </div>
-                )}
+                {/* Payment Status in Summary */}
+                <div
+                  className={`text-center mt-2 p-2 rounded ${
+                    isPaymentPaid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  <span
+                    className={`font-semibold text-xs flex items-center justify-center gap-1 ${
+                      isPaymentPaid ? "text-green-800" : "text-red-800"
+                    }`}
+                  >
+                    {isPaymentPaid ? (
+                      <>
+                        <CheckCircle className="w-3 h-3" />
+                        PAYMENT RECEIVED
+                      </>
+                    ) : (
+                      <>
+                        <XCircle className="w-3 h-3" />
+                        PAYMENT PENDING
+                      </>
+                    )}
+                  </span>
+                </div>
               </div>
 
               {/* Delivery details if applicable - Compact */}

@@ -20,6 +20,7 @@ export interface FirestoreOrder {
   deliveryDate: string
   deliveryTime: string
   paymentMethod: string
+  paymentStatus: "PAID" | "UNPAID" // New field
   isDelivery: boolean
   deliveryAddress: string
   deliveryFee: number
@@ -37,7 +38,7 @@ export interface FirestoreOrder {
   tax: number
   taxRate: number
   finalTotal: number
-  isPaid: boolean
+  isPaid: boolean // Keep for backward compatibility
   status: "pending" | "completed"
   createdAt: string | Timestamp
   updatedAt?: string | Timestamp
@@ -58,6 +59,7 @@ export const addOrder = async (orderData: Omit<FirestoreOrder, "id" | "updatedAt
     const docRef = await addDoc(collection(db, ORDERS_COLLECTION), {
       ...orderData,
       status: "pending", // Default status
+      paymentStatus: orderData.paymentStatus || "UNPAID", // Ensure payment status is set
       createdAt: serverTimestamp(),
       updatedAt: serverTimestamp(),
     })
@@ -82,6 +84,23 @@ export const updateOrder = async (orderId: string, orderData: Partial<FirestoreO
   } catch (error) {
     console.error("❌ Error updating order in Firestore:", error)
     throw new Error(`Failed to update order: ${error instanceof Error ? error.message : "Unknown error"}`)
+  }
+}
+
+// Update payment status for an order
+export const updatePaymentStatus = async (orderId: string, paymentStatus: "PAID" | "UNPAID"): Promise<void> => {
+  try {
+    console.log("💳 Updating payment status:", orderId, paymentStatus)
+    const orderRef = doc(db, ORDERS_COLLECTION, orderId)
+    await updateDoc(orderRef, {
+      paymentStatus,
+      isPaid: paymentStatus === "PAID", // Update legacy field for compatibility
+      updatedAt: serverTimestamp(),
+    })
+    console.log("✅ Payment status updated:", orderId, paymentStatus)
+  } catch (error) {
+    console.error("❌ Error updating payment status:", error)
+    throw new Error(`Failed to update payment status: ${error instanceof Error ? error.message : "Unknown error"}`)
   }
 }
 
@@ -112,6 +131,8 @@ export const subscribeToOrders = (callback: (orders: FirestoreOrder[]) => void, 
         orders.push({
           id: doc.id,
           ...data,
+          // Ensure payment status exists (for backward compatibility)
+          paymentStatus: data.paymentStatus || (data.isPaid ? "PAID" : "UNPAID"),
           // Convert Firestore Timestamps to ISO strings for consistency
           createdAt: data.createdAt instanceof Timestamp ? data.createdAt.toDate().toISOString() : data.createdAt,
           updatedAt: data.updatedAt instanceof Timestamp ? data.updatedAt.toDate().toISOString() : data.updatedAt,
@@ -138,6 +159,7 @@ export const prepareOrderForFirestore = (orderData: any): Omit<FirestoreOrder, "
     deliveryDate: orderData.deliveryDate,
     deliveryTime: orderData.deliveryTime,
     paymentMethod: orderData.paymentMethod,
+    paymentStatus: orderData.paymentStatus || "UNPAID", // Default to UNPAID
     isDelivery: orderData.isDelivery,
     deliveryAddress: orderData.deliveryAddress || "",
     deliveryFee: orderData.deliveryFee,
@@ -149,7 +171,7 @@ export const prepareOrderForFirestore = (orderData: any): Omit<FirestoreOrder, "
     tax: orderData.tax,
     taxRate: orderData.taxRate,
     finalTotal: orderData.finalTotal,
-    isPaid: orderData.isPaid,
+    isPaid: orderData.paymentStatus === "PAID", // Set legacy field based on payment status
     status: orderData.status || "pending",
     createdAt: orderData.createdAt || new Date().toISOString(),
     // Rewards fields - ensure they're never undefined
@@ -172,6 +194,7 @@ export const exportOrdersToCSV = (orders: FirestoreOrder[]): void => {
     "Pickup Date",
     "Pickup Time",
     "Payment Method",
+    "Payment Status",
     "Delivery Required",
     "Delivery Address",
     "Delivery Fee",
@@ -207,6 +230,7 @@ export const exportOrdersToCSV = (orders: FirestoreOrder[]): void => {
         order.deliveryDate,
         order.deliveryTime,
         order.paymentMethod,
+        order.paymentStatus || (order.isPaid ? "PAID" : "UNPAID"),
         order.isDelivery ? "Yes" : "No",
         `"${order.deliveryAddress}"`,
         order.deliveryFee.toFixed(2),

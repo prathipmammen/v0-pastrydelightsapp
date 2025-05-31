@@ -25,6 +25,7 @@ import {
   Edit,
   Phone,
   Mail,
+  CreditCard,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { addOrder, prepareOrderForFirestore } from "@/lib/firestore"
@@ -59,6 +60,7 @@ export default function PastryOrderSystem() {
   const [deliveryFee, setDeliveryFee] = useState("5.00")
   const [deliveryAddress, setDeliveryAddress] = useState("2009 overton dr, Prosper TEXAS")
   const [paymentMethod, setPaymentMethod] = useState("")
+  const [paymentStatus, setPaymentStatus] = useState<"PAID" | "UNPAID">("UNPAID") // New payment status field
   const [discount, setDiscount] = useState("0%")
   const [puffItems, setPuffItems] = useState<PuffItem[]>([])
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -404,6 +406,7 @@ export default function PastryOrderSystem() {
         deliveryDate: pickupDate,
         deliveryTime: pickupTime,
         paymentMethod: paymentMethod || "Not provided",
+        paymentStatus, // Include payment status
         isDelivery: deliveryRequired.includes("Delivery"),
         deliveryAddress: deliveryRequired.includes("Delivery") ? deliveryAddress || "Not provided" : "",
         deliveryFee: deliveryRequired.includes("Delivery") ? Number.parseFloat(deliveryFee) : 0,
@@ -421,7 +424,7 @@ export default function PastryOrderSystem() {
         tax: calculatedTaxAmount,
         taxRate: calculatedTaxRate,
         finalTotal: calculatedFinalTotal,
-        isPaid: true,
+        isPaid: paymentStatus === "PAID", // Set legacy field based on payment status
         createdAt: new Date().toISOString(),
         // Rewards data
         customerId: currentCustomer.id,
@@ -1070,8 +1073,8 @@ export default function PastryOrderSystem() {
               </div>
             )}
 
-            {/* Payment and Discount */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {/* Payment Method, Payment Status, and Discount */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
                 <Label className="text-amber-800 text-sm">Payment Method *</Label>
                 <Select value={paymentMethod} onValueChange={setPaymentMethod}>
@@ -1086,6 +1089,33 @@ export default function PastryOrderSystem() {
                   </SelectContent>
                 </Select>
                 {!paymentMethod && <p className="text-red-500 text-sm mt-1">⚠️ Payment method is required</p>}
+              </div>
+
+              <div>
+                <Label className="text-amber-800 text-sm flex items-center gap-2">
+                  Payment Status *
+                  <CreditCard className="w-3 h-3" />
+                </Label>
+                <Select value={paymentStatus} onValueChange={(value: "PAID" | "UNPAID") => setPaymentStatus(value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UNPAID">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                        UNPAID
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="PAID">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        PAID
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="text-xs text-amber-600 mt-1">Default: UNPAID for new orders</div>
               </div>
 
               <div>

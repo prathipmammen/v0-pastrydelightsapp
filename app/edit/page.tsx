@@ -7,7 +7,18 @@ import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Separator } from "@/components/ui/separator"
-import { Calendar, Package, Plus, Minus, Trash2, Save, ArrowLeft, AlertCircle, CheckCircle } from "lucide-react"
+import {
+  Calendar,
+  Package,
+  Plus,
+  Minus,
+  Trash2,
+  Save,
+  ArrowLeft,
+  AlertCircle,
+  CheckCircle,
+  CreditCard,
+} from "lucide-react"
 import { useRouter } from "next/navigation"
 import { updateOrder, prepareOrderForFirestore } from "@/lib/firestore"
 // Add these imports at the top
@@ -48,6 +59,7 @@ export default function EditOrderPage() {
   const [originalPointsRedeemed, setOriginalPointsRedeemed] = useState<number | undefined>(undefined)
   const [originalRewardsDiscountAmount, setOriginalRewardsDiscountAmount] = useState<number | undefined>(undefined)
   const [originalCustomerRewardsBalance, setOriginalCustomerRewardsBalance] = useState<number | undefined>(undefined)
+  const [paymentStatus, setPaymentStatus] = useState<"PAID" | "UNPAID">("UNPAID")
 
   const router = useRouter()
 
@@ -68,6 +80,7 @@ export default function EditOrderPage() {
       setDeliveryAddress(order.deliveryAddress === "Not provided" ? "" : order.deliveryAddress)
       setPaymentMethod(order.paymentMethod === "Not provided" ? "" : order.paymentMethod)
       setDiscount(order.discountPercent)
+      setPaymentStatus(order.paymentStatus || (order.isPaid ? "PAID" : "UNPAID"))
 
       // Store original rewards-related fields
       setOriginalCustomerId(order.customerId)
@@ -298,6 +311,7 @@ export default function EditOrderPage() {
         taxRate: calculatedTaxRate,
         finalTotal: calculatedFinalTotal,
         isPaid: true,
+        paymentStatus, // Include payment status
 
         // Include rewards-related fields, using original values if not modified
         customerId: customer ? customer.id : originalCustomerId || null,
@@ -746,9 +760,9 @@ export default function EditOrderPage() {
             )}
 
             {/* Payment and Discount */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               <div>
-                <Label className="text-amber-800">Payment Method</Label>
+                <Label className="text-amber-800 text-sm">Payment Method *</Label>
                 <Select value={paymentMethod} onValueChange={setPaymentMethod}>
                   <SelectTrigger className="mt-1">
                     <SelectValue placeholder="Select Payment Method" />
@@ -763,7 +777,33 @@ export default function EditOrderPage() {
               </div>
 
               <div>
-                <Label className="text-amber-800">Discount</Label>
+                <Label className="text-amber-800 text-sm flex items-center gap-2">
+                  Payment Status *
+                  <CreditCard className="w-3 h-3" />
+                </Label>
+                <Select value={paymentStatus} onValueChange={(value: "PAID" | "UNPAID") => setPaymentStatus(value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="UNPAID">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                        UNPAID
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="PAID">
+                      <div className="flex items-center gap-2">
+                        <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                        PAID
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label className="text-amber-800 text-sm">Discount</Label>
                 <Select value={discount} onValueChange={setDiscount}>
                   <SelectTrigger className="mt-1">
                     <SelectValue />

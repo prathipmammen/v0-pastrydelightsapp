@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
 import {
   Plus,
@@ -21,8 +22,15 @@ import {
   WifiOff,
   ChevronLeft,
   ChevronRight,
+  CreditCard,
 } from "lucide-react"
-import { subscribeToOrders, deleteOrder, type FirestoreOrder, exportOrdersToCSV } from "@/lib/firestore"
+import {
+  subscribeToOrders,
+  deleteOrder,
+  updatePaymentStatus,
+  type FirestoreOrder,
+  exportOrdersToCSV,
+} from "@/lib/firestore"
 
 const ORDERS_PER_PAGE = 10
 
@@ -33,10 +41,12 @@ export default function HistoryPage() {
   const [receiptIdFilter, setReceiptIdFilter] = useState("")
   const [pickupDateFromFilter, setPickupDateFromFilter] = useState("")
   const [pickupDateToFilter, setPickupDateToFilter] = useState("")
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<"ALL" | "PAID" | "UNPAID">("ALL") // New payment status filter
   const [orders, setOrders] = useState<FirestoreOrder[]>([])
   const [isConnected, setIsConnected] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isDeleting, setIsDeleting] = useState<string | null>(null)
+  const [isUpdatingPayment, setIsUpdatingPayment] = useState<string | null>(null) // New state for payment updates
   const [currentPage, setCurrentPage] = useState(1)
 
   useEffect(() => {
@@ -69,12 +79,19 @@ export default function HistoryPage() {
     }
   }, [])
 
-  // Filter orders based on search criteria
+  // Filter orders based on search criteria including payment status
   const filteredOrders = useMemo(() => {
     return orders.filter((order) => {
       const matchesCustomerName = order.customerName.toLowerCase().includes(customerNameFilter.toLowerCase())
       const matchesContact = order.customerContact.toLowerCase().includes(contactFilter.toLowerCase())
       const matchesReceiptId = order.receiptId.toLowerCase().includes(receiptIdFilter.toLowerCase())
+
+      // Payment status filtering
+      const matchesPaymentStatus =
+        paymentStatusFilter === "ALL" ||
+        order.paymentStatus === paymentStatusFilter ||
+        (paymentStatusFilter === "PAID" && order.isPaid) || // Backward compatibility
+        (paymentStatusFilter === "UNPAID" && !order.isPaid && !order.paymentStatus) // Backward compatibility
 
       // Date range filtering
       let matchesDateRange = true
@@ -94,14 +111,29 @@ export default function HistoryPage() {
         }
       }
 
-      return matchesCustomerName && matchesContact && matchesReceiptId && matchesDateRange
+      return matchesCustomerName && matchesContact && matchesReceiptId && matchesDateRange && matchesPaymentStatus
     })
-  }, [orders, customerNameFilter, contactFilter, receiptIdFilter, pickupDateFromFilter, pickupDateToFilter])
+  }, [
+    orders,
+    customerNameFilter,
+    contactFilter,
+    receiptIdFilter,
+    pickupDateFromFilter,
+    pickupDateToFilter,
+    paymentStatusFilter,
+  ])
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [customerNameFilter, contactFilter, receiptIdFilter, pickupDateFromFilter, pickupDateToFilter])
+  }, [
+    customerNameFilter,
+    contactFilter,
+    receiptIdFilter,
+    pickupDateFromFilter,
+    pickupDateToFilter,
+    paymentStatusFilter,
+  ])
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE)
@@ -113,14 +145,18 @@ export default function HistoryPage() {
   const currentPageStats = useMemo(() => {
     const totalItems = currentPageOrders.reduce((sum, order) => sum + order.items.length, 0)
     const totalRevenue = currentPageOrders.reduce((sum, order) => sum + order.finalTotal, 0)
-    return { totalItems, totalRevenue }
+    const paidOrders = currentPageOrders.filter((order) => order.paymentStatus === "PAID" || order.isPaid).length
+    const unpaidOrders = currentPageOrders.length - paidOrders
+    return { totalItems, totalRevenue, paidOrders, unpaidOrders }
   }, [currentPageOrders])
 
   // Calculate statistics for all filtered orders
   const allFilteredStats = useMemo(() => {
     const totalItems = filteredOrders.reduce((sum, order) => sum + order.items.length, 0)
     const totalRevenue = filteredOrders.reduce((sum, order) => sum + order.finalTotal, 0)
-    return { totalItems, totalRevenue }
+    const paidOrders = filteredOrders.filter((order) => order.paymentStatus === "PAID" || order.isPaid).length
+    const unpaidOrders = filteredOrders.length - paidOrders
+    return { totalItems, totalRevenue, paidOrders, unpaidOrders }
   }, [filteredOrders])
 
   const handleViewReceipt = (order: FirestoreOrder) => {
@@ -151,6 +187,26 @@ export default function HistoryPage() {
       } finally {
         setIsDeleting(null)
       }
+    }
+  }
+
+  // New function to handle payment status updates
+  const handlePaymentStatusUpdate = async (order: FirestoreOrder, newStatus: "PAID" | "UNPAID") => {
+    if (!order.id) {
+      console.error("❌ Cannot update payment status: missing Firestore ID")
+      return
+    }
+
+    setIsUpdatingPayment(order.id)
+    try {
+      await updatePaymentStatus(order.id, newStatus)
+      console.log("✅ Payment status updated successfully")
+      // The real-time listener will automatically update the UI
+    } catch (error) {
+      console.error("❌ Error updating payment status:", error)
+      alert(`Failed to update payment status: ${error instanceof Error ? error.message : "Unknown error"}`)
+    } finally {
+      setIsUpdatingPayment(null)
     }
   }
 
@@ -187,6 +243,19 @@ export default function HistoryPage() {
       pages.push(i)
     }
     return pages
+  }
+
+  // Helper function to get payment status display
+  const getPaymentStatusDisplay = (order: FirestoreOrder) => {
+    const status = order.paymentStatus || (order.isPaid ? "PAID" : "UNPAID")
+    const isPaid = status === "PAID"
+
+    return {
+      status,
+      isPaid,
+      icon: isPaid ? "🟢" : "🔴",
+      className: isPaid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800",
+    }
   }
 
   return (
@@ -249,7 +318,7 @@ export default function HistoryPage() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-amber-700 mb-1">Customer Name</label>
                   <Input
@@ -276,6 +345,32 @@ export default function HistoryPage() {
                     onChange={(e) => setReceiptIdFilter(e.target.value)}
                     className="bg-white text-sm"
                   />
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-amber-700 mb-1">Payment Status</label>
+                  <Select
+                    value={paymentStatusFilter}
+                    onValueChange={(value: "ALL" | "PAID" | "UNPAID") => setPaymentStatusFilter(value)}
+                  >
+                    <SelectTrigger className="bg-white text-sm">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="ALL">All Orders</SelectItem>
+                      <SelectItem value="PAID">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 bg-green-500 rounded-full"></span>
+                          PAID Only
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="UNPAID">
+                        <div className="flex items-center gap-2">
+                          <span className="w-2 h-2 bg-red-500 rounded-full"></span>
+                          UNPAID Only
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-amber-700 mb-1">From Date</label>
@@ -328,130 +423,164 @@ export default function HistoryPage() {
                   )}
                 </div>
               ) : (
-                currentPageOrders.map((order) => (
-                  <Card key={order.id} className="bg-white/90 backdrop-blur-sm border border-amber-200">
-                    <CardContent className="p-4">
-                      <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
-                        <div className="space-y-2 flex-1">
-                          <div className="flex flex-wrap items-center gap-2 sm:gap-3">
-                            <span className="font-semibold text-amber-800 text-sm sm:text-base">
-                              Receipt #{order.receiptId}
-                            </span>
-                            <Badge className="bg-yellow-100 text-yellow-800 text-xs">pending</Badge>
-                            {order.id && (
-                              <Badge className="bg-blue-100 text-blue-800 text-xs">
-                                Firebase: {order.id.substring(0, 8)}...
-                              </Badge>
-                            )}
-                          </div>
+                currentPageOrders.map((order) => {
+                  const paymentDisplay = getPaymentStatusDisplay(order)
 
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
-                            <div className="space-y-1">
-                              <div>
-                                <span className="font-medium text-amber-700">Customer:</span> {order.customerName}
-                              </div>
-                              <div>
-                                <span className="font-medium text-amber-700">Contact:</span>{" "}
-                                {order.customerContact === "Not provided"
-                                  ? "No Contact provided"
-                                  : order.customerContact}
-                              </div>
-                              <div>
-                                <span className="font-medium text-amber-700">
-                                  {order.isDelivery ? "Delivery:" : "Pickup:"}
-                                </span>{" "}
-                                {order.deliveryDate} at {order.deliveryTime} • {order.paymentMethod}
-                              </div>
-                              <div>
-                                <span className="font-medium text-amber-700">Items:</span> {order.items.length} items
-                              </div>
-                            </div>
-
-                            {order.isDelivery && order.deliveryAddress !== "Not provided" && (
-                              <div className="space-y-1">
-                                <div className="text-blue-600">
-                                  <span className="font-medium">🚚 Delivery Address:</span>
-                                </div>
-                                <div className="text-blue-700 text-xs sm:text-sm">{order.deliveryAddress}</div>
-                              </div>
-                            )}
-                          </div>
-                          {/* Add this after the existing order details */}
-                          {order.pointsEarned > 0 || order.pointsRedeemed > 0 || order.customerRewardsBalance > 0 ? (
-                            <div className="mt-2 p-2 bg-purple-50 rounded border border-purple-200">
-                              <div className="text-xs text-purple-700">
-                                <strong>Rewards:</strong>
-                                {order.pointsEarned > 0 && (
-                                  <span className="text-green-600"> +{order.pointsEarned} earned</span>
-                                )}
-                                {order.pointsRedeemed > 0 && (
-                                  <span className="text-red-600"> -{order.pointsRedeemed} redeemed</span>
-                                )}
-                                {order.customerRewardsBalance > 0 && (
-                                  <span> • Balance: {order.customerRewardsBalance} pts</span>
-                                )}
-                              </div>
-                            </div>
-                          ) : null}
-                        </div>
-
-                        <div className="text-center lg:text-right space-y-3">
-                          <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2">
-                            <div className="text-xl sm:text-2xl font-bold text-amber-800">
-                              ${order.finalTotal.toFixed(2)}
-                            </div>
-                            {order.isDelivery && <Badge className="bg-blue-100 text-blue-800 text-xs">Delivery</Badge>}
-                            <Badge
-                              className={`text-xs flex items-center gap-1 ${
-                                isConnected ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
-                              }`}
-                            >
-                              {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-                              {isConnected ? "Live" : "Offline"}
-                            </Badge>
-                          </div>
-
-                          <div className="flex flex-wrap gap-1 sm:gap-2 justify-center lg:justify-end">
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleViewReceipt(order)}
-                              className="flex items-center gap-1 text-xs"
-                            >
-                              <Eye className="w-3 h-3" />
-                              <span className="hidden sm:inline">View</span>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleEditOrder(order)}
-                              className="flex items-center gap-1 text-xs"
-                            >
-                              <Edit className="w-3 h-3" />
-                              <span className="hidden sm:inline">Edit</span>
-                            </Button>
-                            <Button
-                              size="sm"
-                              variant="outline"
-                              onClick={() => handleDeleteOrder(order)}
-                              disabled={isDeleting === order.id}
-                              className="flex items-center gap-1 text-xs text-red-600 hover:text-red-700"
-                            >
-                              {isDeleting === order.id ? (
-                                <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
-                              ) : (
-                                <Trash2 className="w-3 h-3" />
-                              )}
-                              <span className="hidden sm:inline">
-                                {isDeleting === order.id ? "Deleting..." : "Delete"}
+                  return (
+                    <Card key={order.id} className="bg-white/90 backdrop-blur-sm border border-amber-200">
+                      <CardContent className="p-4">
+                        <div className="flex flex-col lg:flex-row lg:justify-between lg:items-start gap-4">
+                          <div className="space-y-2 flex-1">
+                            <div className="flex flex-wrap items-center gap-2 sm:gap-3">
+                              <span className="font-semibold text-amber-800 text-sm sm:text-base">
+                                Receipt #{order.receiptId}
                               </span>
-                            </Button>
+                              <Badge className="bg-yellow-100 text-yellow-800 text-xs">pending</Badge>
+
+                              {/* Payment Status Badge with Toggle */}
+                              <div className="flex items-center gap-2">
+                                <Badge className={`text-xs flex items-center gap-1 ${paymentDisplay.className}`}>
+                                  <span>{paymentDisplay.icon}</span>
+                                  {paymentDisplay.status}
+                                </Badge>
+
+                                {/* Quick Payment Status Toggle */}
+                                <Button
+                                  size="sm"
+                                  variant="outline"
+                                  onClick={() =>
+                                    handlePaymentStatusUpdate(order, paymentDisplay.isPaid ? "UNPAID" : "PAID")
+                                  }
+                                  disabled={isUpdatingPayment === order.id}
+                                  className="h-6 px-2 text-xs border-gray-300 hover:bg-gray-50"
+                                  title={`Mark as ${paymentDisplay.isPaid ? "UNPAID" : "PAID"}`}
+                                >
+                                  {isUpdatingPayment === order.id ? (
+                                    <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-gray-600"></div>
+                                  ) : (
+                                    <CreditCard className="w-3 h-3" />
+                                  )}
+                                </Button>
+                              </div>
+
+                              {order.id && (
+                                <Badge className="bg-blue-100 text-blue-800 text-xs">
+                                  Firebase: {order.id.substring(0, 8)}...
+                                </Badge>
+                              )}
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
+                              <div className="space-y-1">
+                                <div>
+                                  <span className="font-medium text-amber-700">Customer:</span> {order.customerName}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-amber-700">Contact:</span>{" "}
+                                  {order.customerContact === "Not provided"
+                                    ? "No Contact provided"
+                                    : order.customerContact}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-amber-700">
+                                    {order.isDelivery ? "Delivery:" : "Pickup:"}
+                                  </span>{" "}
+                                  {order.deliveryDate} at {order.deliveryTime} • {order.paymentMethod}
+                                </div>
+                                <div>
+                                  <span className="font-medium text-amber-700">Items:</span> {order.items.length} items
+                                </div>
+                              </div>
+
+                              {order.isDelivery && order.deliveryAddress !== "Not provided" && (
+                                <div className="space-y-1">
+                                  <div className="text-blue-600">
+                                    <span className="font-medium">🚚 Delivery Address:</span>
+                                  </div>
+                                  <div className="text-blue-700 text-xs sm:text-sm">{order.deliveryAddress}</div>
+                                </div>
+                              )}
+                            </div>
+
+                            {/* Rewards info */}
+                            {order.pointsEarned > 0 || order.pointsRedeemed > 0 || order.customerRewardsBalance > 0 ? (
+                              <div className="mt-2 p-2 bg-purple-50 rounded border border-purple-200">
+                                <div className="text-xs text-purple-700">
+                                  <strong>Rewards:</strong>
+                                  {order.pointsEarned > 0 && (
+                                    <span className="text-green-600"> +{order.pointsEarned} earned</span>
+                                  )}
+                                  {order.pointsRedeemed > 0 && (
+                                    <span className="text-red-600"> -{order.pointsRedeemed} redeemed</span>
+                                  )}
+                                  {order.customerRewardsBalance > 0 && (
+                                    <span> • Balance: {order.customerRewardsBalance} pts</span>
+                                  )}
+                                </div>
+                              </div>
+                            ) : null}
+                          </div>
+
+                          <div className="text-center lg:text-right space-y-3">
+                            <div className="flex flex-wrap items-center justify-center lg:justify-end gap-2">
+                              <div className="text-xl sm:text-2xl font-bold text-amber-800">
+                                ${order.finalTotal.toFixed(2)}
+                              </div>
+                              {order.isDelivery && (
+                                <Badge className="bg-blue-100 text-blue-800 text-xs">Delivery</Badge>
+                              )}
+                              <Badge
+                                className={`text-xs flex items-center gap-1 ${
+                                  isConnected ? "bg-green-100 text-green-800" : "bg-gray-100 text-gray-800"
+                                }`}
+                              >
+                                {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                                {isConnected ? "Live" : "Offline"}
+                              </Badge>
+                            </div>
+
+                            <div className="flex flex-wrap gap-1 sm:gap-2 justify-center lg:justify-end">
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleViewReceipt(order)}
+                                className="flex items-center gap-1 text-xs"
+                              >
+                                <Eye className="w-3 h-3" />
+                                <span className="hidden sm:inline">View</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleEditOrder(order)}
+                                className="flex items-center gap-1 text-xs"
+                              >
+                                <Edit className="w-3 h-3" />
+                                <span className="hidden sm:inline">Edit</span>
+                              </Button>
+                              <Button
+                                size="sm"
+                                variant="outline"
+                                onClick={() => handleDeleteOrder(order)}
+                                disabled={isDeleting === order.id}
+                                className="flex items-center gap-1 text-xs text-red-600 hover:text-red-700"
+                              >
+                                {isDeleting === order.id ? (
+                                  <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-red-600"></div>
+                                ) : (
+                                  <Trash2 className="w-3 h-3" />
+                                )}
+                                <span className="hidden sm:inline">
+                                  {isDeleting === order.id ? "Deleting..." : "Delete"}
+                                </span>
+                              </Button>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    </CardContent>
-                  </Card>
-                ))
+                      </CardContent>
+                    </Card>
+                  )
+                })
               )}
             </div>
 
@@ -511,14 +640,14 @@ export default function HistoryPage() {
               </div>
             )}
 
-            {/* Summary Stats */}
+            {/* Enhanced Summary Stats with Payment Status */}
             {orders.length > 0 && (
               <div className="space-y-4 mt-8 pt-6 border-t border-amber-200">
                 {/* Current Page Stats */}
                 {currentPageOrders.length > 0 && totalPages > 1 && (
                   <div>
                     <h4 className="text-sm font-medium text-amber-800 mb-3">Current Page Statistics</h4>
-                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                       <div className="text-center p-3 bg-white/90 rounded-lg border border-amber-200">
                         <div className="text-lg sm:text-xl font-bold text-amber-800">{currentPageOrders.length}</div>
                         <div className="text-xs sm:text-sm text-amber-600">Orders on Page</div>
@@ -533,6 +662,18 @@ export default function HistoryPage() {
                         </div>
                         <div className="text-xs sm:text-sm text-blue-600">Revenue on Page</div>
                       </div>
+                      <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                        <div className="text-lg sm:text-xl font-bold text-green-800 flex items-center justify-center gap-1">
+                          🟢 {currentPageStats.paidOrders}
+                        </div>
+                        <div className="text-xs sm:text-sm text-green-600">PAID Orders</div>
+                      </div>
+                      <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
+                        <div className="text-lg sm:text-xl font-bold text-red-800 flex items-center justify-center gap-1">
+                          🔴 {currentPageStats.unpaidOrders}
+                        </div>
+                        <div className="text-xs sm:text-sm text-red-600">UNPAID Orders</div>
+                      </div>
                     </div>
                   </div>
                 )}
@@ -542,7 +683,7 @@ export default function HistoryPage() {
                   <h4 className="text-sm font-medium text-amber-800 mb-3">
                     {filteredOrders.length < orders.length ? "Filtered Results" : "Overall Statistics"}
                   </h4>
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
                     <div className="text-center p-4 bg-white/90 rounded-lg border border-amber-200">
                       <div className="text-xl sm:text-2xl font-bold text-amber-800">{filteredOrders.length}</div>
                       <div className="text-xs sm:text-sm text-amber-600">
@@ -558,6 +699,18 @@ export default function HistoryPage() {
                         ${allFilteredStats.totalRevenue.toFixed(2)}
                       </div>
                       <div className="text-xs sm:text-sm text-blue-600">Total Revenue</div>
+                    </div>
+                    <div className="text-center p-4 bg-green-50 rounded-lg border border-green-200">
+                      <div className="text-xl sm:text-2xl font-bold text-green-800 flex items-center justify-center gap-1">
+                        🟢 {allFilteredStats.paidOrders}
+                      </div>
+                      <div className="text-xs sm:text-sm text-green-600">PAID Orders</div>
+                    </div>
+                    <div className="text-center p-4 bg-red-50 rounded-lg border border-red-200">
+                      <div className="text-xl sm:text-2xl font-bold text-red-800 flex items-center justify-center gap-1">
+                        🔴 {allFilteredStats.unpaidOrders}
+                      </div>
+                      <div className="text-xs sm:text-sm text-red-600">UNPAID Orders</div>
                     </div>
                   </div>
                 </div>
