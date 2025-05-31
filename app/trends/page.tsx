@@ -1,11 +1,13 @@
 "use client"
 
+import { Calendar } from "@/components/ui/calendar"
+
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
-import { Plus, Receipt, History, TrendingUp, Package, Calendar, Wifi, WifiOff, AlertCircle } from "lucide-react"
+import { Plus, Receipt, History, TrendingUp, Package, CalendarIcon, Wifi, WifiOff, AlertCircle } from "lucide-react"
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, LineChart, Line } from "recharts"
 import { subscribeToOrders, type FirestoreOrder } from "@/lib/firestore"
 import { Badge } from "@/components/ui/badge"
@@ -386,6 +388,14 @@ export default function TrendsPage() {
             >
               <History className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">History</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
+              onClick={() => router.push("/calendar")}
+            >
+              <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Calendar</span>
             </Button>
             <Button
               variant="default"

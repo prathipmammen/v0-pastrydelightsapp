@@ -1238,6 +1238,14 @@ export default function PastryOrderSystem() {
             </Button>
             <Button
               variant="outline"
+              className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
+              onClick={() => router.push("/calendar")}
+            >
+              <Calendar className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Calendar</span>
+            </Button>
+            <Button
+              variant="outline"
               className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg last:rounded-r-lg"
               onClick={() => router.push("/trends")}
             >

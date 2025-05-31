@@ -23,6 +23,7 @@ import {
   ChevronLeft,
   ChevronRight,
   CreditCard,
+  CalendarIcon,
 } from "lucide-react"
 import {
   subscribeToOrders,
@@ -747,6 +748,14 @@ export default function HistoryPage() {
               <History className="w-3 h-3 sm:w-4 sm:h-4" />
               <span className="hidden sm:inline">History ({orders.length})</span>
               <span className="sm:hidden">({orders.length})</span>
+            </Button>
+            <Button
+              variant="outline"
+              className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
+              onClick={() => router.push("/calendar")}
+            >
+              <CalendarIcon className="w-3 h-3 sm:w-4 sm:h-4" />
+              <span className="hidden sm:inline">Calendar</span>
             </Button>
             <Button
               variant="outline"
