@@ -31,7 +31,8 @@ export default function HistoryPage() {
   const [customerNameFilter, setCustomerNameFilter] = useState("")
   const [contactFilter, setContactFilter] = useState("")
   const [receiptIdFilter, setReceiptIdFilter] = useState("")
-  const [pickupDateFilter, setPickupDateFilter] = useState("")
+  const [pickupDateFromFilter, setPickupDateFromFilter] = useState("")
+  const [pickupDateToFilter, setPickupDateToFilter] = useState("")
   const [orders, setOrders] = useState<FirestoreOrder[]>([])
   const [isConnected, setIsConnected] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -74,16 +75,33 @@ export default function HistoryPage() {
       const matchesCustomerName = order.customerName.toLowerCase().includes(customerNameFilter.toLowerCase())
       const matchesContact = order.customerContact.toLowerCase().includes(contactFilter.toLowerCase())
       const matchesReceiptId = order.receiptId.toLowerCase().includes(receiptIdFilter.toLowerCase())
-      const matchesPickupDate = pickupDateFilter === "" || order.deliveryDate === pickupDateFilter
 
-      return matchesCustomerName && matchesContact && matchesReceiptId && matchesPickupDate
+      // Date range filtering
+      let matchesDateRange = true
+      if (pickupDateFromFilter || pickupDateToFilter) {
+        const orderDate = new Date(order.deliveryDate)
+
+        if (pickupDateFromFilter) {
+          const fromDate = new Date(pickupDateFromFilter)
+          matchesDateRange = matchesDateRange && orderDate >= fromDate
+        }
+
+        if (pickupDateToFilter) {
+          const toDate = new Date(pickupDateToFilter)
+          // Set to end of day for inclusive filtering
+          toDate.setHours(23, 59, 59, 999)
+          matchesDateRange = matchesDateRange && orderDate <= toDate
+        }
+      }
+
+      return matchesCustomerName && matchesContact && matchesReceiptId && matchesDateRange
     })
-  }, [orders, customerNameFilter, contactFilter, receiptIdFilter, pickupDateFilter])
+  }, [orders, customerNameFilter, contactFilter, receiptIdFilter, pickupDateFromFilter, pickupDateToFilter])
 
   // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1)
-  }, [customerNameFilter, contactFilter, receiptIdFilter, pickupDateFilter])
+  }, [customerNameFilter, contactFilter, receiptIdFilter, pickupDateFromFilter, pickupDateToFilter])
 
   // Calculate pagination
   const totalPages = Math.ceil(filteredOrders.length / ORDERS_PER_PAGE)
@@ -231,7 +249,7 @@ export default function HistoryPage() {
                 </span>
               </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
                 <div>
                   <label className="block text-xs sm:text-sm font-medium text-amber-700 mb-1">Customer Name</label>
                   <Input
@@ -260,12 +278,22 @@ export default function HistoryPage() {
                   />
                 </div>
                 <div>
-                  <label className="block text-xs sm:text-sm font-medium text-amber-700 mb-1">Pickup Date</label>
+                  <label className="block text-xs sm:text-sm font-medium text-amber-700 mb-1">From Date</label>
                   <Input
                     type="date"
-                    placeholder="mm/dd/yyyy"
-                    value={pickupDateFilter}
-                    onChange={(e) => setPickupDateFilter(e.target.value)}
+                    placeholder="Start date"
+                    value={pickupDateFromFilter}
+                    onChange={(e) => setPickupDateFromFilter(e.target.value)}
+                    className="bg-white text-sm"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs sm:text-sm font-medium text-amber-700 mb-1">To Date</label>
+                  <Input
+                    type="date"
+                    placeholder="End date"
+                    value={pickupDateToFilter}
+                    onChange={(e) => setPickupDateToFilter(e.target.value)}
                     className="bg-white text-sm"
                   />
                 </div>
