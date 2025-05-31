@@ -22,6 +22,9 @@ import {
   UserPlus,
   Users,
   Info,
+  Edit,
+  Phone,
+  Mail,
 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { addOrder, prepareOrderForFirestore } from "@/lib/firestore"
@@ -31,6 +34,7 @@ import {
   processOrderRewards,
   calculatePointsEarned,
   formatCustomerDisplay,
+  updateCustomerContact,
   type Customer,
   type CustomerMatch,
 } from "@/lib/rewards"
@@ -67,8 +71,17 @@ export default function PastryOrderSystem() {
   const [customerMatches, setCustomerMatches] = useState<CustomerMatch[]>([])
   const [showCustomerSelection, setShowCustomerSelection] = useState(false)
   const [customerLookupMessage, setCustomerLookupMessage] = useState<{
-    type: "found" | "new" | "multiple" | "insufficient" | "error" | "searching"
+    type: "found" | "new" | "multiple" | "insufficient" | "error" | "searching" | "update_contact"
     text: string
+  } | null>(null)
+
+  // New state for contact update prompt
+  const [showContactUpdatePrompt, setShowContactUpdatePrompt] = useState(false)
+  const [contactUpdateInfo, setContactUpdateInfo] = useState<{
+    customer: Customer
+    newPhone: string
+    newEmail: string
+    contactType: "phone" | "email"
   } | null>(null)
 
   const router = useRouter()
@@ -80,7 +93,7 @@ export default function PastryOrderSystem() {
     return parts.length >= 2 && parts.every((part) => part.length > 0)
   }
 
-  // Enhanced customer search with comprehensive lookup
+  // Enhanced customer search with contact update detection
   useEffect(() => {
     const searchCustomers = async () => {
       const trimmedName = customerName.trim()
@@ -92,6 +105,8 @@ export default function PastryOrderSystem() {
       setCustomerMatches([])
       setShowCustomerSelection(false)
       setCustomerLookupMessage(null)
+      setShowContactUpdatePrompt(false)
+      setContactUpdateInfo(null)
 
       // Don't search if no meaningful input
       if (!trimmedName && !trimmedContact) {
@@ -130,13 +145,31 @@ export default function PastryOrderSystem() {
             text: "No existing customer found. A new customer account will be created with this order. You'll start earning reward points!",
           })
         } else if (matches.length === 1) {
-          // Single match found - auto-select
-          const selectedCustomer = matches[0].customer
-          setCustomer(selectedCustomer)
-          setCustomerLookupMessage({
-            type: "found",
-            text: `Customer Found! Welcome back, ${selectedCustomer.name}! You have ${selectedCustomer.rewardsPoints} reward points.`,
-          })
+          // Single match found - check if contact info needs updating
+          const foundCustomer = matches[0].customer
+          const needsContactUpdate = checkIfContactUpdateNeeded(foundCustomer, phone, email)
+
+          if (needsContactUpdate) {
+            // Show contact update prompt
+            setContactUpdateInfo({
+              customer: foundCustomer,
+              newPhone: phone,
+              newEmail: email,
+              contactType: isEmail ? "email" : "phone",
+            })
+            setShowContactUpdatePrompt(true)
+            setCustomerLookupMessage({
+              type: "update_contact",
+              text: `Customer found! Would you like to update their ${isEmail ? "email" : "phone number"}?`,
+            })
+          } else {
+            // Customer found with matching contact info
+            setCustomer(foundCustomer)
+            setCustomerLookupMessage({
+              type: "found",
+              text: `Customer Found! Welcome back, ${foundCustomer.name}! You have ${foundCustomer.rewardsPoints} reward points.`,
+            })
+          }
         } else {
           // Multiple matches - show selection
           setCustomerMatches(matches)
@@ -161,6 +194,61 @@ export default function PastryOrderSystem() {
     const timeoutId = setTimeout(searchCustomers, 600)
     return () => clearTimeout(timeoutId)
   }, [customerName, phoneEmail])
+
+  // Helper function to check if contact info needs updating
+  const checkIfContactUpdateNeeded = (customer: Customer, newPhone: string, newEmail: string): boolean => {
+    if (newPhone && customer.phone && customer.phone !== newPhone) {
+      return true
+    }
+    if (newEmail && customer.email && customer.email !== newEmail) {
+      return true
+    }
+    if (newPhone && !customer.phone) {
+      return true
+    }
+    if (newEmail && !customer.email) {
+      return true
+    }
+    return false
+  }
+
+  // Handle contact update confirmation
+  const handleContactUpdate = async (updateContact: boolean) => {
+    if (!contactUpdateInfo) return
+
+    if (updateContact) {
+      try {
+        // Update customer contact information
+        const updatedCustomer = await updateCustomerContact(
+          contactUpdateInfo.customer.id,
+          contactUpdateInfo.newPhone,
+          contactUpdateInfo.newEmail,
+        )
+
+        setCustomer(updatedCustomer)
+        setCustomerLookupMessage({
+          type: "found",
+          text: `Contact updated! Welcome back, ${updatedCustomer.name}! You have ${updatedCustomer.rewardsPoints} reward points.`,
+        })
+      } catch (error) {
+        console.error("Error updating customer contact:", error)
+        setCustomerLookupMessage({
+          type: "error",
+          text: "Failed to update contact information. Please try again.",
+        })
+      }
+    } else {
+      // Use customer without updating contact
+      setCustomer(contactUpdateInfo.customer)
+      setCustomerLookupMessage({
+        type: "found",
+        text: `Customer Found! Welcome back, ${contactUpdateInfo.customer.name}! You have ${contactUpdateInfo.customer.rewardsPoints} reward points.`,
+      })
+    }
+
+    setShowContactUpdatePrompt(false)
+    setContactUpdateInfo(null)
+  }
 
   // Handle customer selection from multiple matches
   const handleCustomerSelection = (selectedCustomer: Customer) => {
@@ -347,7 +435,7 @@ export default function PastryOrderSystem() {
       const firestoreOrderData = prepareOrderForFirestore(orderData)
       const firestoreOrderId = await addOrder(firestoreOrderData)
 
-      // Store for receipt view (with Firestore ID)
+      // Store updated order for receipt view
       const orderWithId = { ...orderData, firestoreId: firestoreOrderId }
       localStorage.setItem("currentOrder", JSON.stringify(orderWithId))
 
@@ -452,13 +540,16 @@ export default function PastryOrderSystem() {
                               ? "bg-blue-50 border-blue-200"
                               : customerLookupMessage.type === "insufficient"
                                 ? "bg-yellow-50 border-yellow-200"
-                                : "bg-red-50 border-red-200"
+                                : customerLookupMessage.type === "update_contact"
+                                  ? "bg-orange-50 border-orange-200"
+                                  : "bg-red-50 border-red-200"
                     }`}
                   >
                     <div className="flex-shrink-0 mt-0.5">
                       {customerLookupMessage.type === "found" && <User className="w-4 h-4 text-green-600" />}
                       {customerLookupMessage.type === "new" && <UserPlus className="w-4 h-4 text-blue-600" />}
                       {customerLookupMessage.type === "multiple" && <Users className="w-4 h-4 text-purple-600" />}
+                      {customerLookupMessage.type === "update_contact" && <Edit className="w-4 h-4 text-orange-600" />}
                       {customerLookupMessage.type === "searching" && (
                         <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
                       )}
@@ -480,7 +571,9 @@ export default function PastryOrderSystem() {
                                   ? "text-blue-800"
                                   : customerLookupMessage.type === "insufficient"
                                     ? "text-yellow-800"
-                                    : "text-red-800"
+                                    : customerLookupMessage.type === "update_contact"
+                                      ? "text-orange-800"
+                                      : "text-red-800"
                         }`}
                       >
                         {customerLookupMessage.type === "found" && "Customer Found!"}
@@ -488,6 +581,7 @@ export default function PastryOrderSystem() {
                         {customerLookupMessage.type === "multiple" && "Multiple Customers Found"}
                         {customerLookupMessage.type === "searching" && "Searching..."}
                         {customerLookupMessage.type === "insufficient" && "More Information Needed"}
+                        {customerLookupMessage.type === "update_contact" && "Update Contact Info?"}
                         {customerLookupMessage.type === "error" && "Search Error"}
                       </div>
                       <div
@@ -502,11 +596,71 @@ export default function PastryOrderSystem() {
                                   ? "text-blue-700"
                                   : customerLookupMessage.type === "insufficient"
                                     ? "text-yellow-700"
-                                    : "text-red-700"
+                                    : customerLookupMessage.type === "update_contact"
+                                      ? "text-orange-700"
+                                      : "text-red-700"
                         }`}
                       >
                         {customerLookupMessage.text}
                       </div>
+                    </div>
+                  </div>
+                )}
+
+                {/* Contact Update Prompt */}
+                {showContactUpdatePrompt && contactUpdateInfo && (
+                  <div className="p-4 bg-orange-50 border border-orange-200 rounded-lg">
+                    <div className="flex items-start gap-3 mb-4">
+                      <Edit className="w-5 h-5 text-orange-600 mt-0.5" />
+                      <div className="flex-1">
+                        <h4 className="font-medium text-orange-800 mb-2">Update Customer Contact Information</h4>
+                        <div className="text-sm text-orange-700 space-y-2">
+                          <div>
+                            <strong>Customer:</strong> {contactUpdateInfo.customer.name}
+                          </div>
+                          <div>
+                            <strong>Current {contactUpdateInfo.contactType}:</strong>{" "}
+                            {contactUpdateInfo.contactType === "phone"
+                              ? contactUpdateInfo.customer.phone || "Not provided"
+                              : contactUpdateInfo.customer.email || "Not provided"}
+                          </div>
+                          <div>
+                            <strong>New {contactUpdateInfo.contactType}:</strong>{" "}
+                            {contactUpdateInfo.contactType === "phone"
+                              ? contactUpdateInfo.newPhone
+                              : contactUpdateInfo.newEmail}
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="flex gap-3">
+                      <Button
+                        onClick={() => handleContactUpdate(true)}
+                        className="flex-1 bg-orange-600 hover:bg-orange-700 text-white text-sm"
+                        size="sm"
+                      >
+                        <div className="flex items-center gap-2">
+                          {contactUpdateInfo.contactType === "phone" ? (
+                            <Phone className="w-4 h-4" />
+                          ) : (
+                            <Mail className="w-4 h-4" />
+                          )}
+                          Yes, Update {contactUpdateInfo.contactType === "phone" ? "Phone" : "Email"}
+                        </div>
+                      </Button>
+                      <Button
+                        onClick={() => handleContactUpdate(false)}
+                        variant="outline"
+                        className="flex-1 border-orange-300 text-orange-700 hover:bg-orange-50 text-sm"
+                        size="sm"
+                      >
+                        No, Keep Current Info
+                      </Button>
+                    </div>
+
+                    <div className="mt-3 text-xs text-orange-600">
+                      💡 Updating contact info helps ensure accurate customer records and better service.
                     </div>
                   </div>
                 )}
@@ -545,7 +699,7 @@ export default function PastryOrderSystem() {
             </div>
 
             {/* Rewards Display - Now prominently placed after customer details */}
-            {customer && !isLoadingCustomer && !showCustomerSelection && (
+            {customer && !isLoadingCustomer && !showCustomerSelection && !showContactUpdatePrompt && (
               <RewardsDisplay
                 customer={customer}
                 orderSubtotal={subtotalAfterDiscount}
@@ -965,7 +1119,8 @@ export default function PastryOrderSystem() {
                   !paymentMethod ||
                   puffItems.length === 0 ||
                   isSubmitting ||
-                  showCustomerSelection
+                  showCustomerSelection ||
+                  showContactUpdatePrompt
                 }
                 size="lg"
               >
@@ -997,15 +1152,16 @@ export default function PastryOrderSystem() {
                 </div>
               )}
 
-              {showCustomerSelection && (
+              {(showCustomerSelection || showContactUpdatePrompt) && (
                 <p className="text-purple-600 text-center text-sm">
-                  ⚠️ Please select a customer from the options above before submitting the order.
+                  ⚠️ Please complete the customer selection or contact update before submitting the order.
                 </p>
               )}
 
               {(!customerName || !pickupDate || !pickupTime || !paymentMethod || puffItems.length === 0) &&
                 !submitMessage &&
-                !showCustomerSelection && (
+                !showCustomerSelection &&
+                !showContactUpdatePrompt && (
                   <p className="text-red-500 text-center text-sm">
                     ⚠️ Please complete required fields: Customer Name, Pickup Date, Pickup Time, Payment Method, and add
                     at least one puff item
