@@ -23,22 +23,25 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
+  ResponsiveContainer as RechartsResponsiveContainer,
   LineChart,
   Line,
-  Cell,
+  Cell as RechartsCell,
 } from "recharts"
 import { subscribeToOrders, type FirestoreOrder } from "@/lib/firestore"
 import { Badge } from "@/components/ui/badge"
 import DateRangePicker, { type DateRange } from "@/components/date-range-picker"
 import ProtectedRoute from "@/components/protected-route"
 import { getAuth, signOut } from "firebase/auth"
+import { ChevronDown, ChevronUp, Users } from "lucide-react"
+import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
 
 export default function TrendsPage() {
   const router = useRouter()
   const [orders, setOrders] = useState<FirestoreOrder[]>([])
   const [isConnected, setIsConnected] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [isTopItemsExpanded, setIsTopItemsExpanded] = useState(false)
 
   // Initialize with "Year to Date" as default
   const [dateRange, setDateRange] = useState<DateRange>(() => {
@@ -86,6 +89,51 @@ export default function TrendsPage() {
     0,
   )
   const uniqueCustomers = new Set(filteredOrders.map((order) => order.customerName)).size
+
+  // New KPI Calculations
+  const averageOrderValue = totalOrders > 0 ? totalRevenue / totalOrders : 0
+
+  // Repeat Purchase Rate - customers with more than one order
+  const customerOrderCounts = filteredOrders.reduce(
+    (acc, order) => {
+      acc[order.customerName] = (acc[order.customerName] || 0) + 1
+      return acc
+    },
+    {} as Record<string, number>,
+  )
+
+  const repeatCustomers = Object.values(customerOrderCounts).filter((count) => count > 1).length
+  const repeatPurchaseRate = uniqueCustomers > 0 ? (repeatCustomers / uniqueCustomers) * 100 : 0
+
+  // New vs Returning Customers (simplified - based on order count per customer)
+  const newCustomers = Object.values(customerOrderCounts).filter((count) => count === 1).length
+  const returningCustomers = repeatCustomers
+
+  const customerTypeData = [
+    { name: "New Customers", value: newCustomers, color: "#10B981" },
+    { name: "Returning Customers", value: returningCustomers, color: "#F59E0B" },
+  ]
+
+  // Discount/Rewards Utilization Rate
+  const ordersWithDiscounts = filteredOrders.filter((order) => order.discountAmount > 0 || order.rewardsUsed > 0).length
+  const discountUtilizationRate = totalOrders > 0 ? (ordersWithDiscounts / totalOrders) * 100 : 0
+
+  // Top 5 Customers by total spend
+  const customerSpending = filteredOrders.reduce(
+    (acc, order) => {
+      if (!acc[order.customerName]) {
+        acc[order.customerName] = { totalSpent: 0, orderCount: 0 }
+      }
+      acc[order.customerName].totalSpent += order.finalTotal
+      acc[order.customerName].orderCount += 1
+      return acc
+    },
+    {} as Record<string, { totalSpent: number; orderCount: number }>,
+  )
+
+  const top5Customers = Object.entries(customerSpending)
+    .sort(([, a], [, b]) => b.totalSpent - a.totalSpent)
+    .slice(0, 5)
 
   // Generate chronologically sorted chart data
   const chartData = useMemo(() => {
@@ -315,7 +363,7 @@ export default function TrendsPage() {
             </CardHeader>
 
             <CardContent className="p-4 sm:p-6">
-              {/* Key Metrics */}
+              {/* Enhanced Key Metrics */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
                 <Card className="bg-amber-100/90 border-amber-300">
                   <CardContent className="p-3 sm:p-4 text-center">
@@ -343,6 +391,38 @@ export default function TrendsPage() {
                 </Card>
               </div>
 
+              {/* New KPI Cards */}
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
+                <Card className="bg-orange-100/90 border-orange-300">
+                  <CardContent className="p-3 sm:p-4 text-center">
+                    <div className="text-xl sm:text-3xl font-bold text-orange-800">${averageOrderValue.toFixed(2)}</div>
+                    <div className="text-xs sm:text-sm text-orange-600">Avg. Order Value</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-teal-100/90 border-teal-300">
+                  <CardContent className="p-3 sm:p-4 text-center">
+                    <div className="text-xl sm:text-3xl font-bold text-teal-800">{repeatPurchaseRate.toFixed(1)}%</div>
+                    <div className="text-xs sm:text-sm text-teal-600">Repeat Purchase Rate</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-indigo-100/90 border-indigo-300">
+                  <CardContent className="p-3 sm:p-4 text-center">
+                    <div className="text-xl sm:text-3xl font-bold text-indigo-800">
+                      {discountUtilizationRate.toFixed(1)}%
+                    </div>
+                    <div className="text-xs sm:text-sm text-indigo-600">Discount/Rewards Used</div>
+                  </CardContent>
+                </Card>
+                <Card className="bg-pink-100/90 border-pink-300">
+                  <CardContent className="p-3 sm:p-4 text-center">
+                    <div className="text-xl sm:text-3xl font-bold text-pink-800">
+                      {newCustomers + returningCustomers}
+                    </div>
+                    <div className="text-xs sm:text-sm text-pink-600">Total Unique Customers</div>
+                  </CardContent>
+                </Card>
+              </div>
+
               {/* No Data Message */}
               {filteredOrders.length === 0 && dateRange.label !== "Whole Year Outlook" ? (
                 <div className="text-center py-12">
@@ -363,7 +443,7 @@ export default function TrendsPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="h-64 sm:h-96">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <RechartsResponsiveContainer width="100%" height="100%">
                           <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" opacity={0.7} />
                             <XAxis
@@ -392,7 +472,7 @@ export default function TrendsPage() {
                             <Tooltip content={<CustomTooltip />} />
                             <Bar dataKey="sales" name="Sales" radius={[4, 4, 0, 0]}>
                               {chartData.map((entry, index) => (
-                                <Cell
+                                <RechartsCell
                                   key={`cell-${index}`}
                                   fill={entry.isFuture ? pdFutureColor : pdAmberColor}
                                   stroke={entry.isFuture ? "#C0C0C0" : "#D06800"}
@@ -401,7 +481,7 @@ export default function TrendsPage() {
                               ))}
                             </Bar>
                           </BarChart>
-                        </ResponsiveContainer>
+                        </RechartsResponsiveContainer>
                       </div>
                     </CardContent>
                   </Card>
@@ -415,7 +495,7 @@ export default function TrendsPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="h-48 sm:h-64">
-                          <ResponsiveContainer width="100%" height="100%">
+                          <RechartsResponsiveContainer width="100%" height="100%">
                             <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                               <XAxis
@@ -444,7 +524,7 @@ export default function TrendsPage() {
                                 name="Orders"
                               />
                             </LineChart>
-                          </ResponsiveContainer>
+                          </RechartsResponsiveContainer>
                         </div>
                       </CardContent>
                     </Card>
@@ -500,48 +580,173 @@ export default function TrendsPage() {
                     </Card>
                   </div>
 
-                  {/* Top 10 Selling Items */}
-                  <Card className="bg-white/90">
+                  {/* New vs Returning Customers Chart */}
+                  <Card className="bg-white/90 mb-4 sm:mb-6">
                     <CardHeader>
                       <CardTitle className="text-amber-800 text-base sm:text-lg">
-                        Top 10 Selling Items ({dateRange.label})
+                        New vs Returning Customers ({dateRange.label})
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      {customerTypeData.some((d) => d.value > 0) ? (
+                        <div className="h-64 sm:h-80">
+                          <ResponsiveContainer width="100%" height="100%">
+                            <PieChart>
+                              <Pie
+                                data={customerTypeData}
+                                cx="50%"
+                                cy="50%"
+                                innerRadius={60}
+                                outerRadius={120}
+                                paddingAngle={5}
+                                dataKey="value"
+                                label={({ name, value, percent }) =>
+                                  `${name}: ${value} (${(percent * 100).toFixed(1)}%)`
+                                }
+                                labelLine={false}
+                              >
+                                {customerTypeData.map((entry, index) => (
+                                  <Cell key={`cell-${index}`} fill={entry.color} />
+                                ))}
+                              </Pie>
+                              <Tooltip
+                                formatter={(value, name) => [`${value} customers`, name]}
+                                contentStyle={{
+                                  backgroundColor: "rgba(255, 255, 255, 0.95)",
+                                  border: "1px solid #F3E8FF",
+                                  borderRadius: "8px",
+                                  boxShadow: "0 4px 6px -1px rgba(0, 0, 0, 0.1)",
+                                }}
+                              />
+                            </PieChart>
+                          </ResponsiveContainer>
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-500 py-8">
+                          <Users className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-4 text-gray-300" />
+                          <p className="text-sm">No customer data available for selected period</p>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Top 5 Customers Leaderboard */}
+                  <Card className="bg-white/90 mb-4 sm:mb-6">
+                    <CardHeader>
+                      <CardTitle className="text-amber-800 text-base sm:text-lg">
+                        Top 5 Customers ({dateRange.label})
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
                       <div className="space-y-3 sm:space-y-4">
-                        {top10Items.length > 0 ? (
-                          top10Items.map(([itemName, data], index) => (
-                            <div key={itemName} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                        {top5Customers.length > 0 ? (
+                          top5Customers.map(([customerName, data], index) => (
+                            <div
+                              key={customerName}
+                              className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                            >
                               <div className="flex items-center gap-2 sm:gap-3 flex-1">
                                 <div
                                   className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm"
-                                  style={{ backgroundColor: pdAmberColor }}
+                                  style={{
+                                    backgroundColor:
+                                      index === 0
+                                        ? "#FFD700"
+                                        : index === 1
+                                          ? "#C0C0C0"
+                                          : index === 2
+                                            ? "#CD7F32"
+                                            : pdAmberColor,
+                                  }}
                                 >
                                   {index + 1}
                                 </div>
                                 <div className="flex-1 min-w-0">
                                   <div className="font-medium text-gray-800 text-xs sm:text-sm truncate">
-                                    {itemName}
+                                    {customerName}
                                   </div>
-                                  <div className="text-xs text-gray-500">{data.category}</div>
+                                  <div className="text-xs text-gray-500">{data.orderCount} orders</div>
                                 </div>
                               </div>
                               <div className="text-right ml-2">
                                 <div className="font-semibold text-amber-800 text-xs sm:text-sm">
-                                  {data.quantity} sold
+                                  ${data.totalSpent.toFixed(2)}
                                 </div>
-                                <div className="text-xs text-gray-600">${data.revenue.toFixed(2)}</div>
+                                <div className="text-xs text-gray-600">
+                                  ${(data.totalSpent / data.orderCount).toFixed(2)} avg
+                                </div>
                               </div>
                             </div>
                           ))
                         ) : (
                           <div className="text-center text-gray-500 py-8">
-                            <Package className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-4 text-gray-300" />
-                            <p className="text-sm">No sales data available for selected period</p>
+                            <Users className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-4 text-gray-300" />
+                            <p className="text-sm">No customer data available for selected period</p>
                           </div>
                         )}
                       </div>
                     </CardContent>
+                  </Card>
+
+                  {/* Top 10 Selling Items - Collapsible */}
+                  <Card className="bg-white/90">
+                    <CardHeader>
+                      <div
+                        className="flex items-center justify-between cursor-pointer"
+                        onClick={() => setIsTopItemsExpanded(!isTopItemsExpanded)}
+                      >
+                        <CardTitle className="text-amber-800 text-base sm:text-lg">
+                          Top 10 Selling Items ({dateRange.label})
+                        </CardTitle>
+                        <Button variant="ghost" size="sm" className="p-1">
+                          {isTopItemsExpanded ? (
+                            <ChevronUp className="w-4 h-4 text-amber-600" />
+                          ) : (
+                            <ChevronDown className="w-4 h-4 text-amber-600" />
+                          )}
+                        </Button>
+                      </div>
+                    </CardHeader>
+                    {isTopItemsExpanded && (
+                      <CardContent>
+                        <div className="space-y-3 sm:space-y-4">
+                          {top10Items.length > 0 ? (
+                            top10Items.map(([itemName, data], index) => (
+                              <div
+                                key={itemName}
+                                className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
+                              >
+                                <div className="flex items-center gap-2 sm:gap-3 flex-1">
+                                  <div
+                                    className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm"
+                                    style={{ backgroundColor: pdAmberColor }}
+                                  >
+                                    {index + 1}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="font-medium text-gray-800 text-xs sm:text-sm truncate">
+                                      {itemName}
+                                    </div>
+                                    <div className="text-xs text-gray-500">{data.category}</div>
+                                  </div>
+                                </div>
+                                <div className="text-right ml-2">
+                                  <div className="font-semibold text-amber-800 text-xs sm:text-sm">
+                                    {data.quantity} sold
+                                  </div>
+                                  <div className="text-xs text-gray-600">${data.revenue.toFixed(2)}</div>
+                                </div>
+                              </div>
+                            ))
+                          ) : (
+                            <div className="text-center text-gray-500 py-8">
+                              <Package className="w-8 h-8 sm:w-12 sm:h-12 mx-auto mb-4 text-gray-300" />
+                              <p className="text-sm">No sales data available for selected period</p>
+                            </div>
+                          )}
+                        </div>
+                      </CardContent>
+                    )}
                   </Card>
                 </>
               )}
