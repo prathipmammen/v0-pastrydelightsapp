@@ -29,12 +29,12 @@ export default function RewardsDisplay({
   const discountAmount = orderSubtotal * REDEMPTION_DISCOUNT_PERCENT
 
   // Calculate points to earn based on subtotal after any rewards discount
-  const discountedSubtotal = useRedemption ? orderSubtotal - discountAmount : orderSubtotal
-  const pointsToEarn = Math.floor(discountedSubtotal)
+  const finalOrderSubtotal = useRedemption ? orderSubtotal - discountAmount : orderSubtotal
+  const pointsToEarn = Math.floor(Math.max(0, finalOrderSubtotal))
 
   // Calculate new balance using the formula:
   // New Balance = (Current Balance - Redeemed Points) + Points Earned
-  const newBalance = customer.rewardsPoints - (useRedemption ? POINTS_FOR_REDEMPTION : 0) + pointsToEarn
+  const newBalance = Math.max(0, customer.rewardsPoints - (useRedemption ? POINTS_FOR_REDEMPTION : 0) + pointsToEarn)
 
   return (
     <Card className="bg-gradient-to-r from-purple-50 to-pink-50 border-2 border-purple-300 shadow-lg">

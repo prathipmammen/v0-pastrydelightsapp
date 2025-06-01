@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { useRouter } from "next/navigation"
 import {
+  LogOut,
   Plus,
   Receipt,
   History,
@@ -23,6 +24,8 @@ import {
 } from "lucide-react"
 import { subscribeToOrders, type FirestoreOrder } from "@/lib/firestore"
 import { useMediaQuery } from "@/hooks/use-media-query"
+import ProtectedRoute from "@/components/protected-route"
+import { getAuth, signOut } from "firebase/auth"
 
 export default function CalendarPage() {
   const router = useRouter()
@@ -583,11 +586,325 @@ export default function CalendarPage() {
   if (isMobile) {
     // Mobile version - simplified
     return (
-      <div className="min-h-screen bg-gray-50 p-4">
+      <ProtectedRoute>
+        {/* Sign Out Button - Top Right */}
+        <div className="fixed top-4 right-4 z-50">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              const auth = getAuth()
+              signOut(auth).then(() => {
+                router.push("/login")
+              })
+            }}
+            className="bg-white hover:bg-gray-100 text-amber-700 border-amber-300 shadow-sm"
+          >
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
+          </Button>
+        </div>
+        <div className="min-h-screen bg-gray-50 p-4">
+          <div className="max-w-7xl mx-auto bg-white min-h-screen relative z-10">
+            {/* Statistics Bar */}
+            <div className="relative z-20 bg-gray-50 border-b border-gray-200 p-4">
+              <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-orange-600">{currentPeriodStats.totalOrders}</div>
+                  <div className="text-sm text-orange-600 font-medium">Orders</div>
+                </div>
+                <div className="text-center">
+                  <div className="text-2xl font-bold text-green-600">${currentPeriodStats.totalRevenue.toFixed(0)}</div>
+                  <div className="text-sm text-green-600 font-medium">Revenue</div>
+                </div>
+              </div>
+            </div>
+
+            {/* Header */}
+            <div className="relative z-20 border-b border-gray-200 bg-white">
+              <div className="flex items-center justify-between p-4">
+                <div className="flex items-center gap-6">
+                  <h1 className="text-xl font-semibold text-gray-900">Order Calendar</h1>
+
+                  {/* View Mode Buttons - Touch Friendly */}
+                  <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
+                    {(["Day", "Week", "Month", "Year"] as const).map((mode) => (
+                      <Button
+                        key={mode}
+                        variant={viewMode === mode ? "default" : "ghost"}
+                        size="sm"
+                        onClick={() => setViewMode(mode)}
+                        className={`flex-1 text-xs px-3 py-2 min-h-[36px] ${
+                          viewMode === mode
+                            ? "bg-white shadow-sm text-gray-900 font-semibold"
+                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-200"
+                        }`}
+                      >
+                        {mode}
+                      </Button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Search and Connection Status */}
+                <div className="flex items-center gap-4">
+                  <div className="relative">
+                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                    <Input
+                      placeholder="Search orders..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="pl-10 w-32 text-sm border-gray-300"
+                    />
+                  </div>
+                  <Badge
+                    className={`text-xs flex items-center gap-1 ${
+                      isConnected ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                    }`}
+                  >
+                    {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                    {isConnected ? "Live" : "Offline"}
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            {/* Period Navigation */}
+            <div className="relative z-20 border-b border-gray-200 bg-white">
+              <div className="flex items-center justify-between p-4">
+                <h2 className="text-2xl font-light text-gray-900">{getDisplayTitle()}</h2>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate("prev")}
+                    className="text-gray-600 hover:text-gray-900 p-2"
+                  >
+                    <ChevronLeft className="w-4 h-4" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToToday}
+                    className="text-gray-700 border-gray-300 hover:bg-gray-50 px-4"
+                  >
+                    Today
+                  </Button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => navigate("next")}
+                    className="text-gray-600 hover:text-gray-900 p-2"
+                  >
+                    <ChevronRight className="w-4 h-4" />
+                  </Button>
+                </div>
+              </div>
+            </div>
+
+            {/* Content Area */}
+            <div className="relative z-20">
+              {viewMode === "Day" && renderDayView()}
+              {viewMode === "Week" && renderWeekView()}
+              {viewMode === "Year" && renderYearView()}
+              {viewMode === "Month" && (
+                <div className="p-4">
+                  {/* Day Headers */}
+                  <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
+                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                      <div
+                        key={day}
+                        className="p-3 text-center text-sm font-semibold text-gray-700 border-r border-gray-200 last:border-r-0 min-h-[48px] flex items-center justify-center"
+                      >
+                        {day}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* Calendar Days */}
+                  <div className="grid grid-cols-7 border-l border-gray-200">
+                    {days.map((dayInfo, index) => {
+                      const dateKey = formatDateKey(dayInfo.date)
+                      const dayOrders = filteredOrdersByDate[dateKey] || []
+                      const isCurrentDay = isToday(dayInfo.date)
+                      const isSelected = selectedDate === dateKey
+
+                      return (
+                        <div
+                          key={index}
+                          className={`
+                            min-h-[120px] border-r border-b border-gray-200 p-2 cursor-pointer hover:bg-gray-50 transition-colors
+                            ${isSelected ? "bg-blue-50 border-blue-200" : ""}
+                            ${!dayInfo.isCurrentMonth ? "bg-gray-50" : "bg-white"}
+                          `}
+                          onClick={() => handleDateClick(dayInfo.date)}
+                        >
+                          {/* Date Number */}
+                          <div className="flex justify-between items-start mb-2">
+                            <span
+                              className={`
+                                text-sm font-medium
+                                ${!dayInfo.isCurrentMonth ? "text-gray-400" : "text-gray-900"}
+                                ${isCurrentDay ? "bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs" : ""}
+                              `}
+                            >
+                              {dayInfo.day}
+                            </span>
+                            {dayOrders.length > 0 && (
+                              <Badge className="bg-amber-100 text-amber-800 text-xs px-1.5 py-0">
+                                {dayOrders.length}
+                              </Badge>
+                            )}
+                          </div>
+
+                          {/* Orders for this day */}
+                          <div className="space-y-1">
+                            {dayOrders.slice(0, 2).map((order, orderIndex) => (
+                              <div
+                                key={orderIndex}
+                                className={`
+                                  text-xs p-1 rounded text-white transition-opacity
+                                  ${order.paymentStatus === "PAID" || order.isPaid ? "bg-green-500" : "bg-red-500"}
+                                `}
+                              >
+                                <div className="font-medium truncate">
+                                  {formatTime(order.deliveryTime)} {order.customerName}
+                                </div>
+                              </div>
+                            ))}
+                            {dayOrders.length > 2 && (
+                              <div className="text-xs text-gray-500 p-1">+{dayOrders.length - 2} more...</div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Day Order Summary Modal */}
+            <DayOrderSummaryModal />
+            {/* Navigation Footer - Mobile */}
+            <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-sm mt-4 sticky bottom-0 border-t border-gray-200">
+              <div className="p-4 flex justify-center w-full">
+                <div className="flex flex-wrap gap-0 w-full justify-between">
+                  <Button
+                    variant="outline"
+                    className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg last:rounded-r-lg"
+                    onClick={() => router.push("/")}
+                  >
+                    <Plus className="w-3 h-3" />
+                    <span className="hidden sm:inline">Order</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
+                    onClick={() => router.push("/receipt")}
+                  >
+                    <Receipt className="w-3 h-3" />
+                    <span className="hidden sm:inline">Receipt</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
+                    onClick={() => router.push("/history")}
+                  >
+                    <History className="w-3 h-3" />
+                    <span className="hidden sm:inline">History</span>
+                  </Button>
+                  <Button
+                    variant="default"
+                    className="flex-1 flex items-center justify-center gap-2 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded-none"
+                  >
+                    <CalendarIcon className="w-3 h-3" />
+                    <span className="hidden sm:inline">Calendar</span>
+                  </Button>
+                  <Button
+                    variant="outline"
+                    className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg last:rounded-r-lg"
+                    onClick={() => router.push("/trends")}
+                  >
+                    <TrendingUp className="w-3 h-3" />
+                    <span className="hidden sm:inline">Trends</span>
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </ProtectedRoute>
+    )
+  }
+
+  // Desktop version
+  return (
+    <ProtectedRoute>
+      {/* Sign Out Button - Top Right */}
+      <div className="fixed top-4 right-4 z-50">
+        <Button
+          variant="outline"
+          size="sm"
+          onClick={() => {
+            const auth = getAuth()
+            signOut(auth).then(() => {
+              router.push("/login")
+            })
+          }}
+          className="bg-white hover:bg-gray-100 text-amber-700 border-amber-300 shadow-sm"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Sign Out
+        </Button>
+      </div>
+      <div className="min-h-screen bg-gray-50 relative">
+        {/* P&D Logo Watermark - 90% transparent, centered, non-intrusive */}
+        <div
+          className="fixed inset-0 flex items-center justify-center pointer-events-none z-0"
+          style={{
+            backgroundImage: `url('/images/pd-logo-watermark-new.png')`,
+            backgroundSize: "400px 400px",
+            backgroundPosition: "center",
+            backgroundRepeat: "no-repeat",
+            opacity: 0.1,
+          }}
+        >
+          {/* Fallback image element */}
+          <div className="w-96 h-96 opacity-10">
+            <img
+              src="/images/pd-logo-watermark-new.png"
+              alt="P&D Pastry Delights Logo"
+              className="w-full h-full object-contain"
+              onError={(e) => {
+                console.log("Primary watermark image failed, trying fallback")
+                e.currentTarget.src = "/images/pd-logo-transparent.png"
+                e.currentTarget.onerror = () => {
+                  console.log("Fallback watermark image also failed")
+                  e.currentTarget.style.display = "none"
+                }
+              }}
+              onLoad={() => console.log("Watermark image loaded successfully")}
+            />
+          </div>
+        </div>
+
+        {/* Connection Status & Error Messages */}
+        {error && (
+          <div className="mx-4 pt-4 pb-2 relative z-10">
+            <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
+              <AlertCircle className="w-4 h-4 text-red-600" />
+              <span className="text-red-800 text-sm">
+                <strong>Firebase Error:</strong> {error}
+              </span>
+            </div>
+          </div>
+        )}
+
         <div className="max-w-7xl mx-auto bg-white min-h-screen relative z-10">
           {/* Statistics Bar */}
           <div className="relative z-20 bg-gray-50 border-b border-gray-200 p-4">
-            <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
+            <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
               <div className="text-center">
                 <div className="text-2xl font-bold text-orange-600">{currentPeriodStats.totalOrders}</div>
                 <div className="text-sm text-orange-600 font-medium">Orders</div>
@@ -595,6 +912,14 @@ export default function CalendarPage() {
               <div className="text-center">
                 <div className="text-2xl font-bold text-green-600">${currentPeriodStats.totalRevenue.toFixed(0)}</div>
                 <div className="text-sm text-green-600 font-medium">Revenue</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-600">{currentPeriodStats.totalItems}</div>
+                <div className="text-sm text-blue-600 font-medium">Items</div>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-600">{currentPeriodStats.activeDays}</div>
+                <div className="text-sm text-purple-600 font-medium">Active Days</div>
               </div>
             </div>
           </div>
@@ -633,7 +958,7 @@ export default function CalendarPage() {
                     placeholder="Search orders..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
-                    className="pl-10 w-32 text-sm border-gray-300"
+                    className="pl-10 w-64 text-sm border-gray-300"
                   />
                 </div>
                 <Badge
@@ -689,11 +1014,11 @@ export default function CalendarPage() {
             {viewMode === "Month" && (
               <div className="p-4">
                 {/* Day Headers */}
-                <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
-                  {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                <div className="grid grid-cols-7 border-b border-gray-200">
+                  {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day) => (
                     <div
                       key={day}
-                      className="p-3 text-center text-sm font-semibold text-gray-700 border-r border-gray-200 last:border-r-0 min-h-[48px] flex items-center justify-center"
+                      className="p-3 text-center text-sm font-medium text-gray-600 border-r border-gray-200 last:border-r-0"
                     >
                       {day}
                     </div>
@@ -712,20 +1037,20 @@ export default function CalendarPage() {
                       <div
                         key={index}
                         className={`
-                          min-h-[120px] border-r border-b border-gray-200 p-2 cursor-pointer hover:bg-gray-50 transition-colors
-                          ${isSelected ? "bg-blue-50 border-blue-200" : ""}
-                          ${!dayInfo.isCurrentMonth ? "bg-gray-50" : "bg-white"}
-                        `}
+                        min-h-[120px] border-r border-b border-gray-200 p-2 cursor-pointer hover:bg-gray-50 transition-colors
+                        ${isSelected ? "bg-blue-50 border-blue-200" : ""}
+                        ${!dayInfo.isCurrentMonth ? "bg-gray-50" : "bg-white"}
+                      `}
                         onClick={() => handleDateClick(dayInfo.date)}
                       >
                         {/* Date Number */}
                         <div className="flex justify-between items-start mb-2">
                           <span
                             className={`
-                              text-sm font-medium
-                              ${!dayInfo.isCurrentMonth ? "text-gray-400" : "text-gray-900"}
-                              ${isCurrentDay ? "bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs" : ""}
-                            `}
+                            text-sm font-medium
+                            ${!dayInfo.isCurrentMonth ? "text-gray-400" : "text-gray-900"}
+                            ${isCurrentDay ? "bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs" : ""}
+                          `}
                           >
                             {dayInfo.day}
                           </span>
@@ -738,21 +1063,29 @@ export default function CalendarPage() {
 
                         {/* Orders for this day */}
                         <div className="space-y-1">
-                          {dayOrders.slice(0, 2).map((order, orderIndex) => (
+                          {dayOrders.slice(0, 3).map((order, orderIndex) => (
                             <div
                               key={orderIndex}
                               className={`
-                                text-xs p-1 rounded text-white transition-opacity
-                                ${order.paymentStatus === "PAID" || order.isPaid ? "bg-green-500" : "bg-red-500"}
-                              `}
+                              text-xs p-1.5 rounded text-white cursor-pointer hover:opacity-80 transition-opacity
+                              ${order.paymentStatus === "PAID" || order.isPaid ? "bg-green-500" : "bg-red-500"}
+                            `}
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleViewOrder(order)
+                              }}
                             >
                               <div className="font-medium truncate">
                                 {formatTime(order.deliveryTime)} {order.customerName}
                               </div>
+                              <div className="truncate opacity-90">
+                                {order.items.length} {order.items.length === 1 ? "item" : "items"} • $
+                                {order.finalTotal.toFixed(0)}
+                              </div>
                             </div>
                           ))}
-                          {dayOrders.length > 2 && (
-                            <div className="text-xs text-gray-500 p-1">+{dayOrders.length - 2} more...</div>
+                          {dayOrders.length > 3 && (
+                            <div className="text-xs text-gray-500 p-1">+{dayOrders.length - 3} more...</div>
                           )}
                         </div>
                       </div>
@@ -763,419 +1096,129 @@ export default function CalendarPage() {
             )}
           </div>
 
-          {/* Day Order Summary Modal */}
-          <DayOrderSummaryModal />
-          {/* Navigation Footer - Mobile */}
-          <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-sm mt-4 sticky bottom-0 border-t border-gray-200">
-            <div className="p-4 flex justify-center w-full">
-              <div className="flex flex-wrap gap-0 w-full justify-between">
-                <Button
-                  variant="outline"
-                  className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg last:rounded-r-lg"
-                  onClick={() => router.push("/")}
-                >
-                  <Plus className="w-3 h-3" />
-                  <span className="hidden sm:inline">Order</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
-                  onClick={() => router.push("/receipt")}
-                >
-                  <Receipt className="w-3 h-3" />
-                  <span className="hidden sm:inline">Receipt</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
-                  onClick={() => router.push("/history")}
-                >
-                  <History className="w-3 h-3" />
-                  <span className="hidden sm:inline">History</span>
-                </Button>
-                <Button
-                  variant="default"
-                  className="flex-1 flex items-center justify-center gap-2 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded-none"
-                >
-                  <CalendarIcon className="w-3 h-3" />
-                  <span className="hidden sm:inline">Calendar</span>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg last:rounded-r-lg"
-                  onClick={() => router.push("/trends")}
-                >
-                  <TrendingUp className="w-3 h-3" />
-                  <span className="hidden sm:inline">Trends</span>
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    )
-  }
+          {/* Selected Date Details for Month View */}
+          {viewMode === "Month" && selectedDate && (
+            <div className="relative z-20 border-t border-gray-200 bg-gray-50 p-4">
+              <div className="max-w-4xl mx-auto">
+                <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                  Orders for{" "}
+                  {new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", {
+                    weekday: "long",
+                    year: "numeric",
+                    month: "long",
+                    day: "numeric",
+                  })}
+                </h3>
 
-  // Desktop version
-  return (
-    <div className="min-h-screen bg-gray-50 relative">
-      {/* P&D Logo Watermark - 90% transparent, centered, non-intrusive */}
-      <div
-        className="fixed inset-0 flex items-center justify-center pointer-events-none z-0"
-        style={{
-          backgroundImage: `url('/images/pd-logo-watermark-new.png')`,
-          backgroundSize: "400px 400px",
-          backgroundPosition: "center",
-          backgroundRepeat: "no-repeat",
-          opacity: 0.1,
-        }}
-      >
-        {/* Fallback image element */}
-        <div className="w-96 h-96 opacity-10">
-          <img
-            src="/images/pd-logo-watermark-new.png"
-            alt="P&D Pastry Delights Logo"
-            className="w-full h-full object-contain"
-            onError={(e) => {
-              console.log("Primary watermark image failed, trying fallback")
-              e.currentTarget.src = "/images/pd-logo-transparent.png"
-              e.currentTarget.onerror = () => {
-                console.log("Fallback watermark image also failed")
-                e.currentTarget.style.display = "none"
-              }
-            }}
-            onLoad={() => console.log("Watermark image loaded successfully")}
-          />
-        </div>
-      </div>
-
-      {/* Connection Status & Error Messages */}
-      {error && (
-        <div className="mx-4 pt-4 pb-2 relative z-10">
-          <div className="p-3 bg-red-50 border border-red-200 rounded-lg flex items-center gap-2">
-            <AlertCircle className="w-4 h-4 text-red-600" />
-            <span className="text-red-800 text-sm">
-              <strong>Firebase Error:</strong> {error}
-            </span>
-          </div>
-        </div>
-      )}
-
-      <div className="max-w-7xl mx-auto bg-white min-h-screen relative z-10">
-        {/* Statistics Bar */}
-        <div className="relative z-20 bg-gray-50 border-b border-gray-200 p-4">
-          <div className="grid grid-cols-4 gap-6 max-w-4xl mx-auto">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-orange-600">{currentPeriodStats.totalOrders}</div>
-              <div className="text-sm text-orange-600 font-medium">Orders</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-green-600">${currentPeriodStats.totalRevenue.toFixed(0)}</div>
-              <div className="text-sm text-green-600 font-medium">Revenue</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-blue-600">{currentPeriodStats.totalItems}</div>
-              <div className="text-sm text-blue-600 font-medium">Items</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl font-bold text-purple-600">{currentPeriodStats.activeDays}</div>
-              <div className="text-sm text-purple-600 font-medium">Active Days</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Header */}
-        <div className="relative z-20 border-b border-gray-200 bg-white">
-          <div className="flex items-center justify-between p-4">
-            <div className="flex items-center gap-6">
-              <h1 className="text-xl font-semibold text-gray-900">Order Calendar</h1>
-
-              {/* View Mode Buttons - Touch Friendly */}
-              <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
-                {(["Day", "Week", "Month", "Year"] as const).map((mode) => (
-                  <Button
-                    key={mode}
-                    variant={viewMode === mode ? "default" : "ghost"}
-                    size="sm"
-                    onClick={() => setViewMode(mode)}
-                    className={`flex-1 text-xs px-3 py-2 min-h-[36px] ${
-                      viewMode === mode
-                        ? "bg-white shadow-sm text-gray-900 font-semibold"
-                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-200"
-                    }`}
-                  >
-                    {mode}
-                  </Button>
-                ))}
-              </div>
-            </div>
-
-            {/* Search and Connection Status */}
-            <div className="flex items-center gap-4">
-              <div className="relative">
-                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                <Input
-                  placeholder="Search orders..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 w-64 text-sm border-gray-300"
-                />
-              </div>
-              <Badge
-                className={`text-xs flex items-center gap-1 ${
-                  isConnected ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
-                }`}
-              >
-                {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-                {isConnected ? "Live" : "Offline"}
-              </Badge>
-            </div>
-          </div>
-        </div>
-
-        {/* Period Navigation */}
-        <div className="relative z-20 border-b border-gray-200 bg-white">
-          <div className="flex items-center justify-between p-4">
-            <h2 className="text-2xl font-light text-gray-900">{getDisplayTitle()}</h2>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("prev")}
-                className="text-gray-600 hover:text-gray-900 p-2"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={goToToday}
-                className="text-gray-700 border-gray-300 hover:bg-gray-50 px-4"
-              >
-                Today
-              </Button>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => navigate("next")}
-                className="text-gray-600 hover:text-gray-900 p-2"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        </div>
-
-        {/* Content Area */}
-        <div className="relative z-20">
-          {viewMode === "Day" && renderDayView()}
-          {viewMode === "Week" && renderWeekView()}
-          {viewMode === "Year" && renderYearView()}
-          {viewMode === "Month" && (
-            <div className="p-4">
-              {/* Day Headers */}
-              <div className="grid grid-cols-7 border-b border-gray-200">
-                {["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"].map((day) => (
-                  <div
-                    key={day}
-                    className="p-3 text-center text-sm font-medium text-gray-600 border-r border-gray-200 last:border-r-0"
-                  >
-                    {day}
-                  </div>
-                ))}
-              </div>
-
-              {/* Calendar Days */}
-              <div className="grid grid-cols-7 border-l border-gray-200">
-                {days.map((dayInfo, index) => {
-                  const dateKey = formatDateKey(dayInfo.date)
-                  const dayOrders = filteredOrdersByDate[dateKey] || []
-                  const isCurrentDay = isToday(dayInfo.date)
-                  const isSelected = selectedDate === dateKey
-
-                  return (
-                    <div
-                      key={index}
-                      className={`
-                        min-h-[120px] border-r border-b border-gray-200 p-2 cursor-pointer hover:bg-gray-50 transition-colors
-                        ${isSelected ? "bg-blue-50 border-blue-200" : ""}
-                        ${!dayInfo.isCurrentMonth ? "bg-gray-50" : "bg-white"}
-                      `}
-                      onClick={() => handleDateClick(dayInfo.date)}
-                    >
-                      {/* Date Number */}
-                      <div className="flex justify-between items-start mb-2">
-                        <span
-                          className={`
-                            text-sm font-medium
-                            ${!dayInfo.isCurrentMonth ? "text-gray-400" : "text-gray-900"}
-                            ${isCurrentDay ? "bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs" : ""}
-                          `}
+                {filteredOrdersByDate[selectedDate]?.length > 0 ? (
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {filteredOrdersByDate[selectedDate]
+                      .sort((a, b) => a.deliveryTime.localeCompare(b.deliveryTime))
+                      .map((order) => (
+                        <Card
+                          key={order.id}
+                          className="hover:shadow-md transition-shadow cursor-pointer"
+                          onClick={() => handleViewOrder(order)}
                         >
-                          {dayInfo.day}
-                        </span>
-                        {dayOrders.length > 0 && (
-                          <Badge className="bg-amber-100 text-amber-800 text-xs px-1.5 py-0">{dayOrders.length}</Badge>
-                        )}
-                      </div>
+                          <CardContent className="p-4">
+                            <div className="flex items-start justify-between mb-2">
+                              <div>
+                                <div className="font-medium text-gray-900">{order.customerName}</div>
+                                <div className="text-sm text-gray-600 flex items-center gap-1">
+                                  <Clock className="w-3 h-3" />
+                                  {formatTime(order.deliveryTime)}
+                                </div>
+                              </div>
+                              <Badge
+                                className={`${
+                                  order.paymentStatus === "PAID" || order.isPaid
+                                    ? "bg-green-100 text-green-800"
+                                    : "bg-red-100 text-red-800"
+                                }`}
+                              >
+                                {order.paymentStatus === "PAID" || order.isPaid ? "Paid" : "Unpaid"}
+                              </Badge>
+                            </div>
 
-                      {/* Orders for this day */}
-                      <div className="space-y-1">
-                        {dayOrders.slice(0, 3).map((order, orderIndex) => (
-                          <div
-                            key={orderIndex}
-                            className={`
-                              text-xs p-1.5 rounded text-white cursor-pointer hover:opacity-80 transition-opacity
-                              ${order.paymentStatus === "PAID" || order.isPaid ? "bg-green-500" : "bg-red-500"}
-                            `}
-                            onClick={(e) => {
-                              e.stopPropagation()
-                              handleViewOrder(order)
-                            }}
-                          >
-                            <div className="font-medium truncate">
-                              {formatTime(order.deliveryTime)} {order.customerName}
-                            </div>
-                            <div className="truncate opacity-90">
+                            <div className="text-sm text-gray-600 mb-2">
                               {order.items.length} {order.items.length === 1 ? "item" : "items"} • $
-                              {order.finalTotal.toFixed(0)}
+                              {order.finalTotal.toFixed(2)}
                             </div>
-                          </div>
-                        ))}
-                        {dayOrders.length > 3 && (
-                          <div className="text-xs text-gray-500 p-1">+{dayOrders.length - 3} more...</div>
-                        )}
-                      </div>
-                    </div>
-                  )
-                })}
+
+                            <div className="text-xs text-gray-500">
+                              {order.items.slice(0, 2).map((item, index) => (
+                                <div key={index}>
+                                  {item.quantity}x {item.name}
+                                </div>
+                              ))}
+                              {order.items.length > 2 && <div>+{order.items.length - 2} more...</div>}
+                            </div>
+                          </CardContent>
+                        </Card>
+                      ))}
+                  </div>
+                ) : (
+                  <div className="text-center text-gray-500 py-8">
+                    <CalendarDayIcon className="w-12 h-12 mx-auto mb-4 text-gray-300" />
+                    <p>No orders found for this date</p>
+                    {searchTerm && <p className="text-sm mt-2">Try adjusting your search terms</p>}
+                  </div>
+                )}
               </div>
             </div>
           )}
         </div>
 
-        {/* Selected Date Details for Month View */}
-        {viewMode === "Month" && selectedDate && (
-          <div className="relative z-20 border-t border-gray-200 bg-gray-50 p-4">
-            <div className="max-w-4xl mx-auto">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
-                Orders for{" "}
-                {new Date(selectedDate + "T00:00:00").toLocaleDateString("en-US", {
-                  weekday: "long",
-                  year: "numeric",
-                  month: "long",
-                  day: "numeric",
-                })}
-              </h3>
-
-              {filteredOrdersByDate[selectedDate]?.length > 0 ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                  {filteredOrdersByDate[selectedDate]
-                    .sort((a, b) => a.deliveryTime.localeCompare(b.deliveryTime))
-                    .map((order) => (
-                      <Card
-                        key={order.id}
-                        className="hover:shadow-md transition-shadow cursor-pointer"
-                        onClick={() => handleViewOrder(order)}
-                      >
-                        <CardContent className="p-4">
-                          <div className="flex items-start justify-between mb-2">
-                            <div>
-                              <div className="font-medium text-gray-900">{order.customerName}</div>
-                              <div className="text-sm text-gray-600 flex items-center gap-1">
-                                <Clock className="w-3 h-3" />
-                                {formatTime(order.deliveryTime)}
-                              </div>
-                            </div>
-                            <Badge
-                              className={`${
-                                order.paymentStatus === "PAID" || order.isPaid
-                                  ? "bg-green-100 text-green-800"
-                                  : "bg-red-100 text-red-800"
-                              }`}
-                            >
-                              {order.paymentStatus === "PAID" || order.isPaid ? "Paid" : "Unpaid"}
-                            </Badge>
-                          </div>
-
-                          <div className="text-sm text-gray-600 mb-2">
-                            {order.items.length} {order.items.length === 1 ? "item" : "items"} • $
-                            {order.finalTotal.toFixed(2)}
-                          </div>
-
-                          <div className="text-xs text-gray-500">
-                            {order.items.slice(0, 2).map((item, index) => (
-                              <div key={index}>
-                                {item.quantity}x {item.name}
-                              </div>
-                            ))}
-                            {order.items.length > 2 && <div>+{order.items.length - 2} more...</div>}
-                          </div>
-                        </CardContent>
-                      </Card>
-                    ))}
-                </div>
-              ) : (
-                <div className="text-center text-gray-500 py-8">
-                  <CalendarDayIcon className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                  <p>No orders found for this date</p>
-                  {searchTerm && <p className="text-sm mt-2">Try adjusting your search terms</p>}
-                </div>
-              )}
+        {/* Navigation Footer */}
+        <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 z-30">
+          <div className="max-w-7xl mx-auto flex justify-center">
+            <div className="flex gap-0 w-full max-w-md">
+              <Button
+                variant="outline"
+                className="flex-1 flex items-center justify-center gap-2 text-sm border-gray-300 text-gray-700 hover:bg-gray-50 rounded-none first:rounded-l-lg"
+                onClick={() => router.push("/")}
+              >
+                <Plus className="w-4 h-4" />
+                Order
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 flex items-center justify-center gap-2 text-sm border-gray-300 text-gray-700 hover:bg-gray-50 rounded-none"
+                onClick={() => router.push("/receipt")}
+              >
+                <Receipt className="w-4 h-4" />
+                Receipt
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 flex items-center justify-center gap-2 text-sm border-gray-300 text-gray-700 hover:bg-gray-50 rounded-none"
+                onClick={() => router.push("/history")}
+              >
+                <History className="w-4 h-4" />
+                History
+              </Button>
+              <Button
+                variant="default"
+                className="flex-1 flex items-center justify-center gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-none"
+              >
+                <CalendarIcon className="w-4 h-4" />
+                Calendar
+              </Button>
+              <Button
+                variant="outline"
+                className="flex-1 flex items-center justify-center gap-2 text-sm border-gray-300 text-gray-700 hover:bg-gray-50 rounded-none last:rounded-r-lg"
+                onClick={() => router.push("/trends")}
+              >
+                <TrendingUp className="w-4 h-4" />
+                Trends
+              </Button>
             </div>
           </div>
-        )}
-      </div>
-
-      {/* Navigation Footer */}
-      <div className="sticky bottom-0 bg-white border-t border-gray-200 p-4 z-30">
-        <div className="max-w-7xl mx-auto flex justify-center">
-          <div className="flex gap-0 w-full max-w-md">
-            <Button
-              variant="outline"
-              className="flex-1 flex items-center justify-center gap-2 text-sm border-gray-300 text-gray-700 hover:bg-gray-50 rounded-none first:rounded-l-lg"
-              onClick={() => router.push("/")}
-            >
-              <Plus className="w-4 h-4" />
-              Order
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-1 flex items-center justify-center gap-2 text-sm border-gray-300 text-gray-700 hover:bg-gray-50 rounded-none"
-              onClick={() => router.push("/receipt")}
-            >
-              <Receipt className="w-4 h-4" />
-              Receipt
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-1 flex items-center justify-center gap-2 text-sm border-gray-300 text-gray-700 hover:bg-gray-50 rounded-none"
-              onClick={() => router.push("/history")}
-            >
-              <History className="w-4 h-4" />
-              History
-            </Button>
-            <Button
-              variant="default"
-              className="flex-1 flex items-center justify-center gap-2 text-sm bg-blue-600 hover:bg-blue-700 text-white rounded-none"
-            >
-              <CalendarIcon className="w-4 h-4" />
-              Calendar
-            </Button>
-            <Button
-              variant="outline"
-              className="flex-1 flex items-center justify-center gap-2 text-sm border-gray-300 text-gray-700 hover:bg-gray-50 rounded-none last:rounded-r-lg"
-              onClick={() => router.push("/trends")}
-            >
-              <TrendingUp className="w-4 h-4" />
-              Trends
-            </Button>
-          </div>
         </div>
-      </div>
 
-      {/* Day Order Summary Modal */}
-      <DayOrderSummaryModal />
-    </div>
+        {/* Day Order Summary Modal */}
+        <DayOrderSummaryModal />
+      </div>
+    </ProtectedRoute>
   )
 }

@@ -4,6 +4,9 @@ import { useEffect, useState } from "react"
 import Receipt from "@/components/receipt"
 import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
+import ProtectedRoute from "@/components/protected-route"
+import { LogOut } from "lucide-react"
+import { getAuth, signOut } from "firebase/auth"
 
 interface OrderData {
   receiptId: string
@@ -55,20 +58,45 @@ export default function ReceiptPage() {
     }
   }, [])
 
+  const handleSignOut = async () => {
+    try {
+      const auth = getAuth()
+      await signOut(auth)
+      router.push("/login")
+    } catch (error) {
+      console.error("Error signing out:", error)
+    }
+  }
+
   if (!orderData) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-amber-50">
-        <div className="text-center p-6 bg-white rounded-lg shadow-md max-w-md">
-          <h2 className="text-xl font-bold text-amber-800 mb-2">No Receipt Available</h2>
-          <p className="text-amber-600 mb-4">Please create an order first to view the receipt.</p>
+      <ProtectedRoute>
+        {/* Sign Out Button - Top Right */}
+        <div className="fixed top-4 right-4 z-50">
           <Button
-            onClick={() => router.push("/")}
-            className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-6 py-2"
+            onClick={handleSignOut}
+            variant="outline"
+            size="sm"
+            className="bg-white hover:bg-gray-100 text-amber-700 border-amber-300 shadow-sm"
           >
-            Create New Order
+            <LogOut className="w-4 h-4 mr-2" />
+            Sign Out
           </Button>
         </div>
-      </div>
+
+        <div className="min-h-screen flex items-center justify-center bg-amber-50">
+          <div className="text-center p-6 bg-white rounded-lg shadow-md max-w-md">
+            <h2 className="text-xl font-bold text-amber-800 mb-2">No Receipt Available</h2>
+            <p className="text-amber-600 mb-4">Please create an order first to view the receipt.</p>
+            <Button
+              onClick={() => router.push("/")}
+              className="bg-amber-600 hover:bg-amber-700 text-white font-semibold px-6 py-2"
+            >
+              Create New Order
+            </Button>
+          </div>
+        </div>
+      </ProtectedRoute>
     )
   }
 
@@ -77,5 +105,22 @@ export default function ReceiptPage() {
     ? orderData.customerRewardsBalance - (orderData.pointsEarned || 0) + (orderData.pointsRedeemed || 0)
     : 0
 
-  return <Receipt {...orderData} customerPreviousBalance={previousBalance} />
+  return (
+    <ProtectedRoute>
+      {/* Sign Out Button - Top Right */}
+      <div className="fixed top-4 right-4 z-50">
+        <Button
+          onClick={handleSignOut}
+          variant="outline"
+          size="sm"
+          className="bg-white hover:bg-gray-100 text-amber-700 border-amber-300 shadow-sm"
+        >
+          <LogOut className="w-4 h-4 mr-2" />
+          Sign Out
+        </Button>
+      </div>
+
+      <Receipt {...orderData} customerPreviousBalance={previousBalance} />
+    </ProtectedRoute>
+  )
 }

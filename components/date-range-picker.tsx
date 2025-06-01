@@ -21,24 +21,6 @@ interface DateRangePickerProps {
 
 const presetRanges = [
   {
-    label: "This Month",
-    getValue: () => {
-      const now = new Date()
-      const start = new Date(now.getFullYear(), now.getMonth(), 1)
-      const end = new Date(now.getFullYear(), now.getMonth() + 1, 0)
-      return { from: start, to: end, label: "This Month" }
-    },
-  },
-  {
-    label: "Last Month",
-    getValue: () => {
-      const now = new Date()
-      const start = new Date(now.getFullYear(), now.getMonth() - 1, 1)
-      const end = new Date(now.getFullYear(), now.getMonth(), 0)
-      return { from: start, to: end, label: "Last Month" }
-    },
-  },
-  {
     label: "Year to Date",
     getValue: () => {
       const now = new Date()

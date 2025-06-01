@@ -30,7 +30,8 @@ export function canRedeemPoints(points: number): boolean {
 
 // Calculate points earned from an order (1 point per $1 spent, rounded down)
 export function calculatePointsEarned(subtotal: number): number {
-  return Math.floor(subtotal)
+  // Ensure we're working with the actual amount spent (after any discounts but before tax)
+  return Math.floor(Math.max(0, subtotal))
 }
 
 // Helper function to normalize names for comparison
@@ -490,23 +491,21 @@ export async function processOrderRewards(
   discountAmount: number
   newPointsBalance: number
 }> {
-  // Calculate points earned (1 point per $1 spent, rounded down)
-  const pointsEarned = calculatePointsEarned(orderSubtotal)
-
-  // Calculate redemption
+  // Calculate redemption first
   const pointsRedeemed = useRedemption ? POINTS_FOR_REDEMPTION : 0
   const discountAmount = useRedemption ? orderSubtotal * REDEMPTION_DISCOUNT_PERCENT : 0
 
-  // Calculate new balance using the correct formula:
-  // New Balance = (Current Balance - Redeemed Points) + Points Earned
-  const newPointsBalance = customer.rewardsPoints - pointsRedeemed + pointsEarned
+  // Calculate points earned AFTER rewards discount (if any)
+  const finalSubtotal = orderSubtotal - discountAmount
+  const pointsEarned = calculatePointsEarned(finalSubtotal)
+
+  // Calculate new balance: Current Balance - Redeemed + Earned
+  const newPointsBalance = Math.max(0, customer.rewardsPoints - pointsRedeemed + pointsEarned)
 
   // Handle legacy customers by creating a proper customer record
   if (customer.id.startsWith("legacy_")) {
     console.log("🔄 Converting legacy customer to proper customer record")
     const newCustomer = await createCustomer(customer.name, customer.phone, customer.email)
-
-    // Update the customer object with the new ID and points
     customer.id = newCustomer.id
     await updateCustomerRewards(customer.id, newPointsBalance)
   } else {
@@ -514,11 +513,59 @@ export async function processOrderRewards(
     await updateCustomerRewards(customer.id, newPointsBalance)
   }
 
+  console.log(
+    `💰 Rewards processed for ${customer.name}: ${customer.rewardsPoints} - ${pointsRedeemed} + ${pointsEarned} = ${newPointsBalance}`,
+  )
+
   return {
     pointsEarned,
     pointsRedeemed,
     discountAmount,
     newPointsBalance,
+  }
+}
+
+// Recalculate customer points based on their order history
+export async function recalculateCustomerPoints(customerId: string, customerName: string): Promise<number> {
+  try {
+    console.log("🔄 Recalculating points for customer:", customerName)
+
+    // Get all orders for this customer
+    const ordersRef = collection(db, "orders")
+    const customerOrdersQuery = query(ordersRef, where("customerName", "==", customerName))
+    const ordersSnapshot = await getDocs(customerOrdersQuery)
+
+    let totalPointsEarned = 0
+    let totalPointsRedeemed = 0
+
+    // Calculate total points from all orders
+    ordersSnapshot.forEach((doc) => {
+      const order = doc.data()
+      // Use the actual subtotal after discounts but before tax for points calculation
+      const pointsFromOrder = Math.floor(order.preTaxSubtotal || order.finalTotal || 0)
+      totalPointsEarned += pointsFromOrder
+
+      // Add any points redeemed in this order
+      totalPointsRedeemed += order.pointsRedeemed || 0
+    })
+
+    // Net points = Points Earned - Points Redeemed
+    const correctPointsBalance = Math.max(0, totalPointsEarned - totalPointsRedeemed)
+
+    console.log(`📊 Points recalculation for ${customerName}:`)
+    console.log(`   Total earned: ${totalPointsEarned}`)
+    console.log(`   Total redeemed: ${totalPointsRedeemed}`)
+    console.log(`   Correct balance: ${correctPointsBalance}`)
+
+    // Update the customer's points in Firestore
+    if (!customerId.startsWith("legacy_")) {
+      await updateCustomerRewards(customerId, correctPointsBalance)
+    }
+
+    return correctPointsBalance
+  } catch (error) {
+    console.error("❌ Error recalculating customer points:", error)
+    throw error
   }
 }
 
