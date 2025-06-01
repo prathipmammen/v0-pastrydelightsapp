@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertCircle, Eye, EyeOff, Lock, User, Coffee, Cookie, Croissant } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
+import Image from "next/image"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -105,25 +106,14 @@ export default function LoginPage() {
         >
           {/* Logo */}
           <div className="flex justify-center mb-6">
-            <div className="w-24 h-24 relative">
-              <svg viewBox="0 0 100 100" className="w-full h-full text-[#7B5D56]">
-                <path
-                  d="M30,50 C30,35 40,25 50,25 C60,25 70,35 70,50 C70,65 60,75 50,75 C40,75 30,65 30,50 Z"
-                  stroke="currentColor"
-                  strokeWidth="6"
-                  fill="none"
-                />
-                <path
-                  d="M50,25 C60,25 70,35 70,50 C70,65 60,75 50,75 C40,75 30,65 30,50 C30,35 40,25 50,25 Z"
-                  stroke="currentColor"
-                  strokeWidth="6"
-                  fill="none"
-                  transform="translate(100, 0) scale(-1, 1)"
-                />
-                <text x="50" y="40" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="serif">
-                  P & D
-                </text>
-              </svg>
+            <div className="w-32 h-32 relative">
+              <Image
+                src="/images/pd-logo-infinity.png"
+                alt="Pastry Delights Logo"
+                width={128}
+                height={128}
+                className="object-contain"
+              />
             </div>
           </div>
 
