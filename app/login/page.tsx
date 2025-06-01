@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const { login, isAuthenticated, isLoading: authLoading } = useAuth()
+  const { login, isAuthenticated } = useAuth()
   const router = useRouter()
 
   // Animation mount effect
@@ -54,303 +54,189 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="min-h-screen relative overflow-hidden bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50">
-      {/* Hand-drawn pastry illustrations floating around */}
-      <div className="absolute inset-0 overflow-hidden pointer-events-none">
-        {/* Croissants */}
-        <div className="absolute top-20 left-10 animate-float-slow opacity-30">
-          <Croissant className="w-12 h-12 text-amber-600 transform rotate-12" />
-        </div>
-        <div className="absolute top-40 right-20 animate-float-slower opacity-25">
-          <Croissant className="w-8 h-8 text-orange-600 transform -rotate-45" />
-        </div>
-        <div className="absolute bottom-32 left-16 animate-float opacity-20">
-          <Croissant className="w-10 h-10 text-amber-700 transform rotate-90" />
+    <div className="min-h-screen relative overflow-hidden bg-[#f9f6f1]">
+      {/* Background pattern with pastry elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        {/* Large infinity symbol background */}
+        <div className="absolute inset-0 flex items-center justify-center opacity-10 pointer-events-none">
+          <div className="w-[800px] h-[400px] relative">
+            <div className="absolute left-0 top-0 w-[400px] h-[400px] border-[30px] border-[#7B5D56]/20 rounded-full"></div>
+            <div className="absolute right-0 top-0 w-[400px] h-[400px] border-[30px] border-[#7B5D56]/20 rounded-full"></div>
+          </div>
         </div>
 
-        {/* Coffee cups */}
-        <div className="absolute top-60 left-32 animate-float-slow opacity-25">
-          <Coffee className="w-10 h-10 text-amber-800 transform -rotate-12" />
+        {/* Scattered pastry icons */}
+        <div className="absolute top-20 left-10 opacity-10">
+          <Croissant className="w-12 h-12 text-[#7B5D56]" />
         </div>
-        <div className="absolute bottom-20 right-32 animate-float-slower opacity-30">
-          <Coffee className="w-8 h-8 text-orange-700" />
+        <div className="absolute top-40 right-20 opacity-10">
+          <Cookie className="w-10 h-10 text-[#7B5D56]" />
         </div>
-
-        {/* Cookies */}
-        <div className="absolute top-32 right-40 animate-float opacity-20">
-          <Cookie className="w-9 h-9 text-amber-600 transform rotate-45" />
+        <div className="absolute bottom-32 left-16 opacity-10">
+          <Coffee className="w-10 h-10 text-[#7B5D56]" />
         </div>
-        <div className="absolute bottom-40 left-40 animate-float-slow opacity-25">
-          <Cookie className="w-7 h-7 text-orange-600 transform -rotate-30" />
+        <div className="absolute top-60 left-32 opacity-10">
+          <Cookie className="w-8 h-8 text-[#7B5D56]" />
         </div>
-        <div className="absolute top-80 right-16 animate-float-slower opacity-20">
-          <Cookie className="w-11 h-11 text-amber-700 transform rotate-180" />
+        <div className="absolute bottom-20 right-32 opacity-10">
+          <Croissant className="w-9 h-9 text-[#7B5D56]" />
         </div>
-
-        {/* Additional scattered elements */}
-        <div className="absolute top-16 right-60 animate-float opacity-15">
-          <div className="w-3 h-3 bg-amber-400 rounded-full"></div>
+        <div className="absolute top-32 right-40 opacity-10">
+          <Coffee className="w-11 h-11 text-[#7B5D56]" />
         </div>
-        <div className="absolute bottom-60 left-60 animate-float-slow opacity-20">
-          <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+        <div className="absolute bottom-40 left-40 opacity-10">
+          <Cookie className="w-7 h-7 text-[#7B5D56]" />
         </div>
-        <div className="absolute top-96 left-20 animate-float-slower opacity-15">
-          <div className="w-4 h-4 bg-amber-500 rounded-full"></div>
+        <div className="absolute top-80 right-16 opacity-10">
+          <Coffee className="w-9 h-9 text-[#7B5D56]" />
+        </div>
+        <div className="absolute bottom-60 right-60 opacity-10">
+          <Croissant className="w-10 h-10 text-[#7B5D56]" />
         </div>
       </div>
 
-      {/* Main Content with Infinity Symbol Design */}
-      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
-        <div className="relative">
-          {/* Large Infinity Symbol Background */}
-          <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-            <div className="relative w-96 h-48">
-              {/* Left circle of infinity */}
-              <div className="absolute left-0 top-0 w-48 h-48 border-8 border-amber-800/30 rounded-full animate-pulse-slow"></div>
-              {/* Right circle of infinity */}
-              <div
-                className="absolute right-0 top-0 w-48 h-48 border-8 border-amber-800/30 rounded-full animate-pulse-slow"
-                style={{ animationDelay: "1s" }}
-              ></div>
-              {/* Center overlap */}
-              <div className="absolute left-1/2 top-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-amber-800/10 rounded-full animate-pulse"></div>
+      {/* Main content */}
+      <div className="relative z-10 min-h-screen flex flex-col items-center justify-center p-6">
+        {/* Logo and title */}
+        <div
+          className={`text-center mb-8 transform transition-all duration-1000 ease-out ${
+            mounted ? "translate-y-0 opacity-100" : "translate-y-8 opacity-0"
+          }`}
+        >
+          {/* Logo */}
+          <div className="flex justify-center mb-6">
+            <div className="w-24 h-24 relative">
+              <svg viewBox="0 0 100 100" className="w-full h-full text-[#7B5D56]">
+                <path
+                  d="M30,50 C30,35 40,25 50,25 C60,25 70,35 70,50 C70,65 60,75 50,75 C40,75 30,65 30,50 Z"
+                  stroke="currentColor"
+                  strokeWidth="6"
+                  fill="none"
+                />
+                <path
+                  d="M50,25 C60,25 70,35 70,50 C70,65 60,75 50,75 C40,75 30,65 30,50 C30,35 40,25 50,25 Z"
+                  stroke="currentColor"
+                  strokeWidth="6"
+                  fill="none"
+                  transform="translate(100, 0) scale(-1, 1)"
+                />
+                <text x="50" y="40" textAnchor="middle" fontSize="12" fill="currentColor" fontFamily="serif">
+                  P & D
+                </text>
+              </svg>
             </div>
           </div>
 
-          {/* Login Card positioned in center of infinity */}
-          <div
-            className={`relative z-20 transform transition-all duration-1500 ease-out ${
-              mounted ? "translate-y-0 opacity-100 scale-100" : "translate-y-12 opacity-0 scale-95"
-            }`}
-          >
-            <Card className="w-full max-w-sm bg-white/95 backdrop-blur-xl border-0 shadow-2xl hover:shadow-3xl transition-all duration-700 hover:scale-[1.03] rounded-2xl overflow-hidden">
-              <CardHeader className="text-center bg-gradient-to-br from-amber-100/95 via-orange-100/95 to-yellow-100/95 border-b border-amber-200/50 relative overflow-hidden">
-                {/* Decorative elements in header */}
-                <div className="absolute top-2 left-2 w-2 h-2 bg-amber-400/50 rounded-full animate-ping"></div>
-                <div
-                  className="absolute top-4 right-4 w-1 h-1 bg-orange-400/50 rounded-full animate-ping"
-                  style={{ animationDelay: "0.5s" }}
-                ></div>
-                <div
-                  className="absolute bottom-2 left-4 w-1.5 h-1.5 bg-yellow-400/50 rounded-full animate-ping"
-                  style={{ animationDelay: "1s" }}
-                ></div>
+          <h1 className="text-4xl font-serif text-[#7B5D56] mb-1">Pastry Delights</h1>
+          <p className="text-[#7B5D56]/70 text-sm tracking-widest uppercase font-light">Administrative Portal</p>
+        </div>
 
-                <div className="flex justify-center mb-4 relative">
-                  <div className="w-16 h-16 relative group">
-                    <div className="absolute inset-0 bg-gradient-to-r from-amber-400 via-orange-400 to-yellow-400 rounded-full opacity-20 group-hover:opacity-40 transition-all duration-500 animate-pulse-slow"></div>
-                    <div className="absolute inset-2 bg-white rounded-full shadow-inner"></div>
-                    <div className="absolute inset-0 flex items-center justify-center">
-                      <div className="text-2xl font-bold text-amber-800 group-hover:scale-110 transition-transform duration-300">
-                        ∞
-                      </div>
-                    </div>
-                  </div>
-                </div>
+        {/* Login card */}
+        <Card
+          className={`bg-white border-0 shadow-lg rounded-lg overflow-hidden w-full max-w-md transform transition-all duration-1000 ease-out ${
+            mounted ? "translate-y-0 opacity-100 scale-100" : "translate-y-12 opacity-0 scale-95"
+          }`}
+        >
+          <CardHeader className="text-center pb-4 pt-8 border-b border-gray-100">
+            <CardTitle className="text-2xl font-light text-[#7B5D56]">Welcome Back</CardTitle>
+            <p className="text-[#7B5D56]/70 text-sm mt-1">Please sign in to continue</p>
+          </CardHeader>
 
-                <CardTitle className="text-xl font-bold bg-gradient-to-r from-amber-800 via-orange-800 to-amber-900 bg-clip-text text-transparent animate-fade-in tracking-wide">
-                  P&D Pastry Delights
-                </CardTitle>
-                <p className="text-amber-700 text-xs font-medium animate-fade-in-delay tracking-widest uppercase">
-                  Admin Access Portal
-                </p>
-              </CardHeader>
+          <CardContent className="p-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
+              {/* Username field */}
+              <div className="space-y-2">
+                <Label htmlFor="username" className="text-[#7B5D56] text-sm font-medium flex items-center gap-2">
+                  <User className="w-4 h-4 text-[#7B5D56]" />
+                  Username
+                </Label>
+                <Input
+                  id="username"
+                  type="text"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="Enter your username"
+                  className="bg-white border-gray-200 text-[#7B5D56] placeholder:text-gray-400 focus:border-[#7B5D56] focus:ring-1 focus:ring-[#7B5D56]/30 rounded-md h-11"
+                  disabled={isLoading}
+                  autoComplete="username"
+                />
+              </div>
 
-              <CardContent className="p-6 space-y-5 relative">
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div className="group">
-                    <Label
-                      htmlFor="username"
-                      className="text-amber-800 flex items-center gap-2 font-semibold text-xs tracking-wide uppercase"
-                    >
-                      <User className="w-3 h-3 group-hover:text-amber-600 transition-colors duration-200" />
-                      Username
-                    </Label>
-                    <Input
-                      id="username"
-                      type="text"
-                      value={username}
-                      onChange={(e) => setUsername(e.target.value)}
-                      placeholder="Enter your username"
-                      className="mt-2 border-amber-300/40 focus:border-amber-500 focus:ring-2 focus:ring-amber-200/50 transition-all duration-300 hover:border-amber-400 bg-white/90 backdrop-blur-sm rounded-xl h-11 text-sm"
-                      disabled={isLoading}
-                      autoComplete="username"
-                    />
-                  </div>
-
-                  <div className="group">
-                    <Label
-                      htmlFor="password"
-                      className="text-amber-800 flex items-center gap-2 font-semibold text-xs tracking-wide uppercase"
-                    >
-                      <Lock className="w-3 h-3 group-hover:text-amber-600 transition-colors duration-200" />
-                      Password
-                    </Label>
-                    <div className="relative mt-2">
-                      <Input
-                        id="password"
-                        type={showPassword ? "text" : "password"}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="Enter your password"
-                        className="border-amber-300/40 focus:border-amber-500 focus:ring-2 focus:ring-amber-200/50 pr-10 transition-all duration-300 hover:border-amber-400 bg-white/90 backdrop-blur-sm rounded-xl h-11 text-sm"
-                        disabled={isLoading}
-                        autoComplete="current-password"
-                      />
-                      <button
-                        type="button"
-                        onClick={() => setShowPassword(!showPassword)}
-                        className="absolute right-3 top-1/2 transform -translate-y-1/2 text-amber-600 hover:text-amber-800 transition-all duration-200 hover:scale-110"
-                        disabled={isLoading}
-                      >
-                        {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
-                      </button>
-                    </div>
-                  </div>
-
-                  {error && (
-                    <div className="bg-gradient-to-r from-red-50/80 to-pink-50/80 border border-red-200/30 rounded-xl p-3 animate-shake backdrop-blur-sm">
-                      <div className="flex items-center gap-2">
-                        <AlertCircle className="w-3 h-3 text-red-600 animate-bounce" />
-                        <span className="text-xs text-red-800 font-medium">{error}</span>
-                      </div>
-                    </div>
-                  )}
-
-                  <Button
-                    type="submit"
-                    className="w-full bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-700 hover:via-orange-700 hover:to-amber-800 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm tracking-wide uppercase group"
+              {/* Password field */}
+              <div className="space-y-2">
+                <Label htmlFor="password" className="text-[#7B5D56] text-sm font-medium flex items-center gap-2">
+                  <Lock className="w-4 h-4 text-[#7B5D56]" />
+                  Password
+                </Label>
+                <div className="relative">
+                  <Input
+                    id="password"
+                    type={showPassword ? "text" : "password"}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="Enter your password"
+                    className="bg-white border-gray-200 text-[#7B5D56] placeholder:text-gray-400 focus:border-[#7B5D56] focus:ring-1 focus:ring-[#7B5D56]/30 rounded-md h-11 pr-10"
+                    disabled={isLoading}
+                    autoComplete="current-password"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-[#7B5D56] transition-colors duration-200"
                     disabled={isLoading}
                   >
-                    {isLoading ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Signing In...
-                      </>
-                    ) : (
-                      <>
-                        <span>Sign In</span>
-                        <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200 transform group-hover:translate-x-1">
-                          →
-                        </div>
-                      </>
-                    )}
-                  </Button>
-                </form>
-
-                {/* Session Info */}
-                <div className="bg-gradient-to-r from-amber-100/60 to-orange-100/60 border border-amber-300/30 rounded-xl p-3 hover:bg-gradient-to-r hover:from-amber-100/80 hover:to-orange-100/80 transition-all duration-300 backdrop-blur-sm">
-                  <p className="text-xs text-amber-800 text-center font-semibold tracking-wide">
-                    🔒 Session expires after 24 hours
-                  </p>
+                    {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+                  </button>
                 </div>
+              </div>
 
-                {/* Authorized Users Notice */}
-                <div className="bg-gradient-to-r from-amber-100/60 to-orange-100/60 border border-amber-300/30 rounded-xl p-3 hover:bg-gradient-to-r hover:from-amber-100/80 hover:to-orange-100/80 transition-all duration-300 backdrop-blur-sm">
-                  <p className="text-xs text-amber-800 text-center font-semibold tracking-wide">
-                    🔒 AUTHORIZED ADMINISTRATORS ONLY
-                  </p>
+              {/* Error message */}
+              {error && (
+                <div className="bg-red-50 border border-red-100 rounded-md p-3">
+                  <div className="flex items-center gap-2">
+                    <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
+                    <span className="text-red-600 text-sm">{error}</span>
+                  </div>
                 </div>
-              </CardContent>
-            </Card>
-          </div>
+              )}
+
+              {/* Submit button */}
+              <Button
+                type="submit"
+                className="w-full bg-[#7B5D56] hover:bg-[#6A4C45] text-white font-medium py-2 rounded-md transition-colors duration-300 disabled:opacity-50 disabled:cursor-not-allowed h-11"
+                disabled={isLoading}
+              >
+                {isLoading ? (
+                  <div className="flex items-center justify-center gap-2">
+                    <div className="animate-spin rounded-full h-4 w-4 border-2 border-white border-t-transparent"></div>
+                    <span>Signing In...</span>
+                  </div>
+                ) : (
+                  "Sign In"
+                )}
+              </Button>
+
+              {/* Session info */}
+              <div className="pt-4 border-t border-gray-100 text-center space-y-2">
+                <p className="text-green-600 text-xs flex items-center justify-center gap-1">
+                  <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  Secure connection established
+                </p>
+                <p className="text-[#7B5D56]/60 text-xs">Session expires after 24 hours</p>
+              </div>
+            </form>
+          </CardContent>
+        </Card>
+
+        {/* Bottom notice */}
+        <div
+          className={`text-center mt-8 transform transition-all duration-1000 ease-out delay-300 ${
+            mounted ? "translate-y-0 opacity-100" : "translate-y-4 opacity-0"
+          }`}
+        >
+          <p className="text-[#7B5D56]/60 text-xs">Authorized personnel only • All access is monitored</p>
         </div>
       </div>
-
-      {/* Bottom Text */}
-      <div className="absolute bottom-8 left-1/2 transform -translate-x-1/2 pointer-events-none">
-        <h1 className="text-4xl md:text-6xl font-light text-amber-800/40 tracking-[0.3em] uppercase animate-fade-in-slow">
-          Pastry Delights
-        </h1>
-      </div>
-
-      <style jsx>{`
-        @keyframes float {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-15px) rotate(5deg); }
-        }
-        
-        @keyframes float-slow {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-20px) rotate(10deg); }
-        }
-        
-        @keyframes float-slower {
-          0%, 100% { transform: translateY(0px) rotate(0deg); }
-          50% { transform: translateY(-25px) rotate(-8deg); }
-        }
-        
-        @keyframes pulse-slow {
-          0%, 100% { opacity: 0.3; transform: scale(1); }
-          50% { opacity: 0.6; transform: scale(1.05); }
-        }
-        
-        @keyframes fade-in {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes fade-in-delay {
-          from { opacity: 0; transform: translateY(10px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes fade-in-slow {
-          from { opacity: 0; transform: translateY(20px); }
-          to { opacity: 1; transform: translateY(0); }
-        }
-        
-        @keyframes slide-in {
-          from { opacity: 0; transform: translateX(-20px); }
-          to { opacity: 1; transform: translateX(0); }
-        }
-        
-        @keyframes shake {
-          0%, 100% { transform: translateX(0); }
-          25% { transform: translateX(-3px); }
-          75% { transform: translateX(3px); }
-        }
-        
-        .animate-float {
-          animation: float 4s ease-in-out infinite;
-        }
-        
-        .animate-float-slow {
-          animation: float-slow 6s ease-in-out infinite;
-        }
-        
-        .animate-float-slower {
-          animation: float-slower 8s ease-in-out infinite;
-        }
-        
-        .animate-pulse-slow {
-          animation: pulse-slow 4s ease-in-out infinite;
-        }
-        
-        .animate-fade-in {
-          animation: fade-in 0.8s ease-out;
-        }
-        
-        .animate-fade-in-delay {
-          animation: fade-in-delay 0.8s ease-out 0.3s both;
-        }
-        
-        .animate-fade-in-slow {
-          animation: fade-in-slow 2s ease-out 1s both;
-        }
-        
-        .animate-slide-in {
-          animation: slide-in 0.6s ease-out 0.5s both;
-        }
-        
-        .animate-shake {
-          animation: shake 0.5s ease-in-out;
-        }
-        
-        .shadow-3xl {
-          box-shadow: 0 35px 60px -12px rgba(0, 0, 0, 0.25);
-        }
-      `}</style>
     </div>
   )
 }

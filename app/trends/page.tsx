@@ -15,6 +15,9 @@ import {
   Wifi,
   WifiOff,
   AlertCircle,
+  ChevronDown,
+  ChevronUp,
+  Users,
 } from "lucide-react"
 import {
   BarChart,
@@ -23,18 +26,18 @@ import {
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer as RechartsResponsiveContainer,
+  ResponsiveContainer,
   LineChart,
   Line,
-  Cell as RechartsCell,
+  Cell,
+  PieChart,
+  Pie,
 } from "recharts"
 import { subscribeToOrders, type FirestoreOrder } from "@/lib/firestore"
 import { Badge } from "@/components/ui/badge"
 import DateRangePicker, { type DateRange } from "@/components/date-range-picker"
 import ProtectedRoute from "@/components/protected-route"
 import { getAuth, signOut } from "firebase/auth"
-import { ChevronDown, ChevronUp, Users } from "lucide-react"
-import { PieChart, Pie, Cell, ResponsiveContainer } from "recharts"
 
 export default function TrendsPage() {
   const router = useRouter()
@@ -105,7 +108,7 @@ export default function TrendsPage() {
   const repeatCustomers = Object.values(customerOrderCounts).filter((count) => count > 1).length
   const repeatPurchaseRate = uniqueCustomers > 0 ? (repeatCustomers / uniqueCustomers) * 100 : 0
 
-  // New vs Returning Customers (simplified - based on order count per customer)
+  // New vs Returning Customers
   const newCustomers = Object.values(customerOrderCounts).filter((count) => count === 1).length
   const returningCustomers = repeatCustomers
 
@@ -363,7 +366,7 @@ export default function TrendsPage() {
             </CardHeader>
 
             <CardContent className="p-4 sm:p-6">
-              {/* Enhanced Key Metrics */}
+              {/* Key Metrics */}
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
                 <Card className="bg-amber-100/90 border-amber-300">
                   <CardContent className="p-3 sm:p-4 text-center">
@@ -443,7 +446,7 @@ export default function TrendsPage() {
                     </CardHeader>
                     <CardContent>
                       <div className="h-64 sm:h-96">
-                        <RechartsResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%">
                           <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" opacity={0.7} />
                             <XAxis
@@ -472,7 +475,7 @@ export default function TrendsPage() {
                             <Tooltip content={<CustomTooltip />} />
                             <Bar dataKey="sales" name="Sales" radius={[4, 4, 0, 0]}>
                               {chartData.map((entry, index) => (
-                                <RechartsCell
+                                <Cell
                                   key={`cell-${index}`}
                                   fill={entry.isFuture ? pdFutureColor : pdAmberColor}
                                   stroke={entry.isFuture ? "#C0C0C0" : "#D06800"}
@@ -481,7 +484,7 @@ export default function TrendsPage() {
                               ))}
                             </Bar>
                           </BarChart>
-                        </RechartsResponsiveContainer>
+                        </ResponsiveContainer>
                       </div>
                     </CardContent>
                   </Card>
@@ -495,7 +498,7 @@ export default function TrendsPage() {
                       </CardHeader>
                       <CardContent>
                         <div className="h-48 sm:h-64">
-                          <RechartsResponsiveContainer width="100%" height="100%">
+                          <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                               <XAxis
@@ -524,7 +527,7 @@ export default function TrendsPage() {
                                 name="Orders"
                               />
                             </LineChart>
-                          </RechartsResponsiveContainer>
+                          </ResponsiveContainer>
                         </div>
                       </CardContent>
                     </Card>
