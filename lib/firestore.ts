@@ -152,6 +152,8 @@ export const subscribeToOrders = (callback: (orders: FirestoreOrder[]) => void, 
 
 // Helper function to convert order data for Firestore
 export const prepareOrderForFirestore = (orderData: any): Omit<FirestoreOrder, "id" | "updatedAt"> => {
+  const isPaid = orderData.paymentStatus === "PAID" || orderData.isPaid
+
   return {
     receiptId: orderData.receiptId,
     customerName: orderData.customerName,
@@ -159,7 +161,7 @@ export const prepareOrderForFirestore = (orderData: any): Omit<FirestoreOrder, "
     deliveryDate: orderData.deliveryDate,
     deliveryTime: orderData.deliveryTime,
     paymentMethod: orderData.paymentMethod,
-    paymentStatus: orderData.paymentStatus || "UNPAID", // Default to UNPAID
+    paymentStatus: orderData.paymentStatus || "UNPAID",
     isDelivery: orderData.isDelivery,
     deliveryAddress: orderData.deliveryAddress || "",
     deliveryFee: orderData.deliveryFee,
@@ -171,15 +173,43 @@ export const prepareOrderForFirestore = (orderData: any): Omit<FirestoreOrder, "
     tax: orderData.tax,
     taxRate: orderData.taxRate,
     finalTotal: orderData.finalTotal,
-    isPaid: orderData.paymentStatus === "PAID", // Set legacy field based on payment status
+    isPaid: isPaid,
     status: orderData.status || "pending",
     createdAt: orderData.createdAt || new Date().toISOString(),
-    // Rewards fields - ensure they're never undefined
+    // Rewards fields - only apply if order is PAID
     customerId: orderData.customerId || null,
-    pointsEarned: orderData.pointsEarned || 0,
-    pointsRedeemed: orderData.pointsRedeemed || 0,
-    rewardsDiscountAmount: orderData.rewardsDiscountAmount || 0,
+    pointsEarned: isPaid ? orderData.pointsEarned || 0 : 0,
+    pointsRedeemed: isPaid ? orderData.pointsRedeemed || 0 : 0,
+    rewardsDiscountAmount: isPaid ? orderData.rewardsDiscountAmount || 0 : 0,
     customerRewardsBalance: orderData.customerRewardsBalance || 0,
+  }
+}
+
+// Update rewards when payment status changes
+export const updateOrderRewards = async (orderId: string, isPaid: boolean, orderTotal: number): Promise<void> => {
+  try {
+    console.log("🎁 Updating order rewards:", orderId, isPaid, orderTotal)
+
+    const orderRef = doc(db, ORDERS_COLLECTION, orderId)
+    const updateData: any = {
+      updatedAt: serverTimestamp(),
+    }
+
+    if (isPaid) {
+      // Award points when marking as paid
+      updateData.pointsEarned = Math.floor(orderTotal)
+    } else {
+      // Remove points when marking as unpaid
+      updateData.pointsEarned = 0
+      updateData.pointsRedeemed = 0
+      updateData.rewardsDiscountAmount = 0
+    }
+
+    await updateDoc(orderRef, updateData)
+    console.log("✅ Order rewards updated successfully")
+  } catch (error) {
+    console.error("❌ Error updating order rewards:", error)
+    throw error
   }
 }
 

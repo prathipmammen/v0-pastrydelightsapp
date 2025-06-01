@@ -203,8 +203,14 @@ export default function HistoryPage() {
 
     setIsUpdatingPayment(order.id)
     try {
+      // Update payment status
       await updatePaymentStatus(order.id, newStatus)
-      console.log("✅ Payment status updated successfully")
+
+      // Update rewards based on payment status
+      const { updateOrderRewards } = await import("@/lib/firestore")
+      await updateOrderRewards(order.id, newStatus === "PAID", order.finalTotal)
+
+      console.log("✅ Payment status and rewards updated successfully")
       // The real-time listener will automatically update the UI
     } catch (error) {
       console.error("❌ Error updating payment status:", error)
@@ -260,6 +266,20 @@ export default function HistoryPage() {
       icon: isPaid ? "🟢" : "🔴",
       className: isPaid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800",
     }
+  }
+
+  // Helper function to calculate customer's total points from PAID orders
+  const getCustomerTotalPoints = (customerName: string): number => {
+    return orders
+      .filter((order) => {
+        const isPaid = order.paymentStatus === "PAID" || order.isPaid
+        return order.customerName === customerName && isPaid
+      })
+      .reduce((total, order) => {
+        const pointsEarned = order.pointsEarned || Math.floor(order.finalTotal)
+        const pointsRedeemed = order.pointsRedeemed || 0
+        return total + pointsEarned - pointsRedeemed
+      }, 0)
   }
 
   return (
@@ -459,7 +479,9 @@ export default function HistoryPage() {
                                 <span className="font-semibold text-amber-800 text-sm sm:text-base">
                                   Receipt #{order.receiptId}
                                 </span>
-                                <Badge className="bg-yellow-100 text-yellow-800 text-xs">pending</Badge>
+                                {!paymentDisplay.isPaid && (
+                                  <Badge className="bg-yellow-100 text-yellow-800 text-xs">pending</Badge>
+                                )}
 
                                 {/* Payment Status Badge with Toggle */}
                                 <div className="flex items-center gap-2">
@@ -486,12 +508,6 @@ export default function HistoryPage() {
                                     )}
                                   </Button>
                                 </div>
-
-                                {order.id && (
-                                  <Badge className="bg-blue-100 text-blue-800 text-xs">
-                                    Firebase: {order.id.substring(0, 8)}...
-                                  </Badge>
-                                )}
                               </div>
 
                               <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 sm:gap-4 text-xs sm:text-sm">
@@ -527,25 +543,45 @@ export default function HistoryPage() {
                                 )}
                               </div>
 
-                              {/* Rewards info */}
-                              {order.pointsEarned > 0 ||
-                              order.pointsRedeemed > 0 ||
-                              order.customerRewardsBalance > 0 ? (
-                                <div className="mt-2 p-2 bg-purple-50 rounded border border-purple-200">
-                                  <div className="text-xs text-purple-700">
-                                    <strong>Rewards:</strong>
-                                    {order.pointsEarned > 0 && (
+                              {/* Rewards info - Moved below order details, simplified */}
+                              <div className="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
+                                <div className="text-sm text-purple-700">
+                                  <strong>Rewards:</strong>
+                                  {/* Only show earned points if order is PAID */}
+                                  {paymentDisplay.isPaid ? (
+                                    order.pointsEarned > 0 ? (
                                       <span className="text-green-600"> +{order.pointsEarned} earned</span>
-                                    )}
-                                    {order.pointsRedeemed > 0 && (
-                                      <span className="text-red-600"> -{order.pointsRedeemed} redeemed</span>
-                                    )}
-                                    {order.customerRewardsBalance > 0 && (
-                                      <span> • Balance: {order.customerRewardsBalance} pts</span>
-                                    )}
-                                  </div>
+                                    ) : (
+                                      <span className="text-green-600"> +{Math.floor(order.finalTotal)} earned</span>
+                                    )
+                                  ) : (
+                                    <span className="text-orange-600">
+                                      {" "}
+                                      +{Math.floor(order.finalTotal)} pending payment
+                                    </span>
+                                  )}
+
+                                  {/* Show redeemed points if any */}
+                                  {order.pointsRedeemed > 0 && paymentDisplay.isPaid && (
+                                    <span className="text-red-600"> -{order.pointsRedeemed} redeemed</span>
+                                  )}
+
+                                  {/* Show customer's current balance */}
+                                  {order.customerRewardsBalance > 0 ? (
+                                    <span> • Balance: {order.customerRewardsBalance} pts</span>
+                                  ) : (
+                                    <span className="text-gray-600">
+                                      {" "}
+                                      • Balance: {getCustomerTotalPoints(order.customerName)} pts
+                                    </span>
+                                  )}
+
+                                  {/* Status indicators - simplified */}
+                                  {!paymentDisplay.isPaid && (
+                                    <span className="text-orange-600 ml-2">(⏳ Points pending payment)</span>
+                                  )}
                                 </div>
-                              ) : null}
+                              </div>
                             </div>
 
                             <div className="text-center lg:text-right space-y-3">
