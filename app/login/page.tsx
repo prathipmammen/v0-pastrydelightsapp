@@ -18,7 +18,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const { login, isAuthenticated } = useAuth()
+  const { login, isAuthenticated, shouldShowWelcomeVideo } = useAuth()
   const router = useRouter()
 
   // Animation mount effect
@@ -26,12 +26,12 @@ export default function LoginPage() {
     setMounted(true)
   }, [])
 
-  // Redirect if already authenticated
+  // Redirect if already authenticated (but not if welcome video should show)
   useEffect(() => {
-    if (isAuthenticated) {
+    if (isAuthenticated && !shouldShowWelcomeVideo) {
       router.push("/")
     }
-  }, [isAuthenticated, router])
+  }, [isAuthenticated, shouldShowWelcomeVideo, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()

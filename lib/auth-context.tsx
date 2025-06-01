@@ -13,6 +13,8 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   isLoading: boolean
+  shouldShowWelcomeVideo: boolean
+  completeWelcomeVideo: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -29,6 +31,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null)
+  const [shouldShowWelcomeVideo, setShouldShowWelcomeVideo] = useState(false)
 
   useEffect(() => {
     // Check for existing session
@@ -86,6 +89,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setUser(userData)
+      setShouldShowWelcomeVideo(true)
 
       // Store session (24 hours)
       const sessionExpiry = Date.now() + 24 * 60 * 60 * 1000
@@ -115,6 +119,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
+  const completeWelcomeVideo = () => {
+    setShouldShowWelcomeVideo(false)
+  }
+
   const signOut = async (): Promise<void> => {
     setUser(null)
     localStorage.removeItem("pastry-delights-user")
@@ -127,6 +135,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     signOut,
     isLoading,
+    shouldShowWelcomeVideo,
+    completeWelcomeVideo,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
