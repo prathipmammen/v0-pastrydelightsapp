@@ -1,145 +1,132 @@
 "use client"
 
-import type React from "react"
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useState, useEffect, type ReactNode } from "react"
 
-// Static credentials
-const STATIC_CREDENTIALS = {
-  username: "dinudixon",
-  password: "Boost#1992",
+interface User {
+  username: string
+  displayName: string
 }
 
 interface AuthContextType {
+  user: User | null
   isAuthenticated: boolean
-  isLoading: boolean
-  signIn: (username: string, password: string) => Promise<void>
+  login: (username: string, password: string) => Promise<void>
   signOut: () => Promise<void>
-  failedAttempts: number
-  isLocked: boolean
-  lockoutTime: number | null
+  isLoading: boolean
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
 
-export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isAuthenticated, setIsAuthenticated] = useState(false)
+// Static credentials
+const VALID_CREDENTIALS = {
+  username: "dinudixon",
+  password: "Boost#1992",
+  displayName: "Dinu Dixon",
+}
+
+export function AuthProvider({ children }: { children: ReactNode }) {
+  const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [failedAttempts, setFailedAttempts] = useState(0)
-  const [isLocked, setIsLocked] = useState(false)
-  const [lockoutTime, setLockoutTime] = useState<number | null>(null)
+  const [lockoutUntil, setLockoutUntil] = useState<number | null>(null)
 
-  // Check if user is already authenticated on mount
   useEffect(() => {
-    const authStatus = localStorage.getItem("isAuthenticated")
-    const authTime = localStorage.getItem("authTime")
+    // Check for existing session
+    const storedUser = localStorage.getItem("pastry-delights-user")
+    const sessionExpiry = localStorage.getItem("pastry-delights-session-expiry")
 
-    if (authStatus === "true" && authTime) {
-      const loginTime = Number.parseInt(authTime)
+    if (storedUser && sessionExpiry) {
       const now = Date.now()
-      const twentyFourHours = 24 * 60 * 60 * 1000
-
-      // Session expires after 24 hours
-      if (now - loginTime < twentyFourHours) {
-        setIsAuthenticated(true)
+      if (now < Number.parseInt(sessionExpiry)) {
+        setUser(JSON.parse(storedUser))
       } else {
-        localStorage.removeItem("isAuthenticated")
-        localStorage.removeItem("authTime")
+        // Session expired
+        localStorage.removeItem("pastry-delights-user")
+        localStorage.removeItem("pastry-delights-session-expiry")
       }
+    }
+
+    // Check lockout status
+    const storedLockout = localStorage.getItem("pastry-delights-lockout")
+    const storedAttempts = localStorage.getItem("pastry-delights-failed-attempts")
+
+    if (storedLockout) {
+      const lockoutTime = Number.parseInt(storedLockout)
+      if (Date.now() < lockoutTime) {
+        setLockoutUntil(lockoutTime)
+      } else {
+        localStorage.removeItem("pastry-delights-lockout")
+        localStorage.removeItem("pastry-delights-failed-attempts")
+        setFailedAttempts(0)
+      }
+    }
+
+    if (storedAttempts) {
+      setFailedAttempts(Number.parseInt(storedAttempts))
     }
 
     setIsLoading(false)
   }, [])
 
-  // Check lockout status
-  useEffect(() => {
-    const checkLockout = () => {
-      const lockoutEnd = localStorage.getItem("lockoutEnd")
-      if (lockoutEnd) {
-        const lockoutEndTime = Number.parseInt(lockoutEnd)
-        if (Date.now() < lockoutEndTime) {
-          setIsLocked(true)
-          setLockoutTime(lockoutEndTime)
-        } else {
-          localStorage.removeItem("lockoutEnd")
-          localStorage.removeItem("failedAttempts")
-          setIsLocked(false)
-          setLockoutTime(null)
-          setFailedAttempts(0)
-        }
-      }
-    }
-
-    checkLockout()
-    const interval = setInterval(checkLockout, 1000)
-    return () => clearInterval(interval)
-  }, [])
-
-  // Load failed attempts from localStorage
-  useEffect(() => {
-    const stored = localStorage.getItem("failedAttempts")
-    if (stored) {
-      setFailedAttempts(Number.parseInt(stored))
-    }
-  }, [])
-
-  // Handle failed login attempt
-  const handleFailedAttempt = () => {
-    const newAttempts = failedAttempts + 1
-    setFailedAttempts(newAttempts)
-    localStorage.setItem("failedAttempts", newAttempts.toString())
-
-    if (newAttempts >= 5) {
-      const lockoutEnd = Date.now() + 15 * 60 * 1000 // 15 minutes
-      setIsLocked(true)
-      setLockoutTime(lockoutEnd)
-      localStorage.setItem("lockoutEnd", lockoutEnd.toString())
-    }
-  }
-
-  // Reset failed attempts on successful login
-  const resetFailedAttempts = () => {
-    setFailedAttempts(0)
-    localStorage.removeItem("failedAttempts")
-    localStorage.removeItem("lockoutEnd")
-    setIsLocked(false)
-    setLockoutTime(null)
-  }
-
-  // Sign in with username and password
-  const signIn = async (username: string, password: string) => {
-    if (isLocked) {
-      throw new Error("Account is temporarily locked. Please try again later.")
+  const login = async (username: string, password: string): Promise<void> => {
+    // Check if account is locked
+    if (lockoutUntil && Date.now() < lockoutUntil) {
+      const remainingTime = Math.ceil((lockoutUntil - Date.now()) / 1000 / 60)
+      throw new Error(`Account locked. Try again in ${remainingTime} minutes.`)
     }
 
     // Simulate network delay
     await new Promise((resolve) => setTimeout(resolve, 1000))
 
-    if (username === STATIC_CREDENTIALS.username && password === STATIC_CREDENTIALS.password) {
-      setIsAuthenticated(true)
-      localStorage.setItem("isAuthenticated", "true")
-      localStorage.setItem("authTime", Date.now().toString())
-      resetFailedAttempts()
+    // Validate credentials
+    if (username === VALID_CREDENTIALS.username && password === VALID_CREDENTIALS.password) {
+      const userData: User = {
+        username: VALID_CREDENTIALS.username,
+        displayName: VALID_CREDENTIALS.displayName,
+      }
+
+      setUser(userData)
+
+      // Store session (24 hours)
+      const sessionExpiry = Date.now() + 24 * 60 * 60 * 1000
+      localStorage.setItem("pastry-delights-user", JSON.stringify(userData))
+      localStorage.setItem("pastry-delights-session-expiry", sessionExpiry.toString())
+
+      // Clear failed attempts
+      setFailedAttempts(0)
+      localStorage.removeItem("pastry-delights-failed-attempts")
+      localStorage.removeItem("pastry-delights-lockout")
+      setLockoutUntil(null)
     } else {
-      handleFailedAttempt()
-      throw new Error("Invalid username or password.")
+      // Handle failed login
+      const newFailedAttempts = failedAttempts + 1
+      setFailedAttempts(newFailedAttempts)
+      localStorage.setItem("pastry-delights-failed-attempts", newFailedAttempts.toString())
+
+      if (newFailedAttempts >= 5) {
+        // Lock account for 15 minutes
+        const lockoutTime = Date.now() + 15 * 60 * 1000
+        setLockoutUntil(lockoutTime)
+        localStorage.setItem("pastry-delights-lockout", lockoutTime.toString())
+        throw new Error("Too many failed attempts. Account locked for 15 minutes.")
+      }
+
+      throw new Error("Invalid username or password")
     }
   }
 
-  // Sign out
-  const signOut = async () => {
-    setIsAuthenticated(false)
-    localStorage.removeItem("isAuthenticated")
-    localStorage.removeItem("authTime")
+  const signOut = async (): Promise<void> => {
+    setUser(null)
+    localStorage.removeItem("pastry-delights-user")
+    localStorage.removeItem("pastry-delights-session-expiry")
   }
 
-  const value = {
-    isAuthenticated,
-    isLoading,
-    signIn,
+  const value: AuthContextType = {
+    user,
+    isAuthenticated: !!user,
+    login,
     signOut,
-    failedAttempts,
-    isLocked,
-    lockoutTime,
+    isLoading,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>

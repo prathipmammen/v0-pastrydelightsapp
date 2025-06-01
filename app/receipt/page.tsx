@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import ProtectedRoute from "@/components/protected-route"
 import { LogOut } from "lucide-react"
-import { signOut } from "firebase/auth"
+import { getAuth, signOut } from "firebase/auth"
 
 interface OrderData {
   receiptId: string
@@ -60,7 +60,8 @@ export default function ReceiptPage() {
 
   const handleSignOut = async () => {
     try {
-      await signOut()
+      const auth = getAuth()
+      await signOut(auth)
       router.push("/login")
     } catch (error) {
       console.error("Error signing out:", error)

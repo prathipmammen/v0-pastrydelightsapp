@@ -17,7 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const { signIn, isAuthenticated, failedAttempts, isLocked, lockoutTime } = useAuth()
+  const { login, isAuthenticated, isLoading: authLoading } = useAuth()
   const router = useRouter()
 
   // Animation mount effect
@@ -32,21 +32,8 @@ export default function LoginPage() {
     }
   }, [isAuthenticated, router])
 
-  // Format lockout time
-  const formatLockoutTime = (time: number) => {
-    const remaining = Math.ceil((time - Date.now()) / 1000)
-    const minutes = Math.floor(remaining / 60)
-    const seconds = remaining % 60
-    return `${minutes}:${seconds.toString().padStart(2, "0")}`
-  }
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
-
-    if (isLocked) {
-      setError("Account is temporarily locked. Please wait before trying again.")
-      return
-    }
 
     if (!username || !password) {
       setError("Please enter both username and password.")
@@ -57,7 +44,7 @@ export default function LoginPage() {
     setError("")
 
     try {
-      await signIn(username, password)
+      await login(username, password)
       // Redirect will happen automatically via useEffect
     } catch (error: any) {
       setError(error.message)
@@ -170,43 +157,6 @@ export default function LoginPage() {
               </CardHeader>
 
               <CardContent className="p-6 space-y-5 relative">
-                {/* Demo Credentials Notice */}
-                <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/30 rounded-xl p-3 transform hover:scale-[1.02] transition-all duration-300 animate-slide-in backdrop-blur-sm">
-                  <div className="flex items-center gap-2 mb-2">
-                    <User className="w-3 h-3 text-blue-600 animate-pulse" />
-                    <span className="text-xs font-semibold text-blue-800 tracking-wide">DEMO CREDENTIALS</span>
-                  </div>
-                  <p className="text-xs text-blue-700 leading-relaxed">
-                    Username: <span className="font-mono font-semibold">dinudixon</span>
-                    <br />
-                    Password: <span className="font-mono font-semibold">Boost#1992</span>
-                  </p>
-                </div>
-
-                {/* Failed Attempts Warning */}
-                {failedAttempts > 0 && !isLocked && (
-                  <div className="bg-gradient-to-r from-yellow-50/80 to-orange-50/80 border border-yellow-200/30 rounded-xl p-3 animate-shake backdrop-blur-sm">
-                    <div className="flex items-center gap-2">
-                      <AlertCircle className="w-3 h-3 text-yellow-600 animate-bounce" />
-                      <span className="text-xs text-yellow-800 font-medium">
-                        {failedAttempts} failed attempt{failedAttempts > 1 ? "s" : ""}. {5 - failedAttempts} remaining.
-                      </span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Lockout Warning */}
-                {isLocked && lockoutTime && (
-                  <div className="bg-gradient-to-r from-red-50/80 to-pink-50/80 border border-red-200/30 rounded-xl p-3 animate-pulse backdrop-blur-sm">
-                    <div className="flex items-center gap-2">
-                      <Lock className="w-3 h-3 text-red-600" />
-                      <span className="text-xs text-red-800 font-medium">
-                        Account locked. Try again in {formatLockoutTime(lockoutTime)}
-                      </span>
-                    </div>
-                  </div>
-                )}
-
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="group">
                     <Label
@@ -223,7 +173,7 @@ export default function LoginPage() {
                       onChange={(e) => setUsername(e.target.value)}
                       placeholder="Enter your username"
                       className="mt-2 border-amber-300/40 focus:border-amber-500 focus:ring-2 focus:ring-amber-200/50 transition-all duration-300 hover:border-amber-400 bg-white/90 backdrop-blur-sm rounded-xl h-11 text-sm"
-                      disabled={isLocked || isLoading}
+                      disabled={isLoading}
                       autoComplete="username"
                     />
                   </div>
@@ -244,14 +194,14 @@ export default function LoginPage() {
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Enter your password"
                         className="border-amber-300/40 focus:border-amber-500 focus:ring-2 focus:ring-amber-200/50 pr-10 transition-all duration-300 hover:border-amber-400 bg-white/90 backdrop-blur-sm rounded-xl h-11 text-sm"
-                        disabled={isLocked || isLoading}
+                        disabled={isLoading}
                         autoComplete="current-password"
                       />
                       <button
                         type="button"
                         onClick={() => setShowPassword(!showPassword)}
                         className="absolute right-3 top-1/2 transform -translate-y-1/2 text-amber-600 hover:text-amber-800 transition-all duration-200 hover:scale-110"
-                        disabled={isLocked || isLoading}
+                        disabled={isLoading}
                       >
                         {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
                       </button>
@@ -270,7 +220,7 @@ export default function LoginPage() {
                   <Button
                     type="submit"
                     className="w-full bg-gradient-to-r from-amber-600 via-orange-600 to-amber-700 hover:from-amber-700 hover:via-orange-700 hover:to-amber-800 text-white font-bold py-3 rounded-xl shadow-lg hover:shadow-xl transform hover:scale-[1.02] transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none text-sm tracking-wide uppercase group"
-                    disabled={isLocked || isLoading}
+                    disabled={isLoading}
                   >
                     {isLoading ? (
                       <>
@@ -292,6 +242,13 @@ export default function LoginPage() {
                 <div className="bg-gradient-to-r from-amber-100/60 to-orange-100/60 border border-amber-300/30 rounded-xl p-3 hover:bg-gradient-to-r hover:from-amber-100/80 hover:to-orange-100/80 transition-all duration-300 backdrop-blur-sm">
                   <p className="text-xs text-amber-800 text-center font-semibold tracking-wide">
                     🔒 Session expires after 24 hours
+                  </p>
+                </div>
+
+                {/* Authorized Users Notice */}
+                <div className="bg-gradient-to-r from-amber-100/60 to-orange-100/60 border border-amber-300/30 rounded-xl p-3 hover:bg-gradient-to-r hover:from-amber-100/80 hover:to-orange-100/80 transition-all duration-300 backdrop-blur-sm">
+                  <p className="text-xs text-amber-800 text-center font-semibold tracking-wide">
+                    🔒 AUTHORIZED ADMINISTRATORS ONLY
                   </p>
                 </div>
               </CardContent>

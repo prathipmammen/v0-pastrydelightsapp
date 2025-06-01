@@ -474,8 +474,6 @@ export default function PastryOrderSystem() {
     }
   }
 
-  // Update the signOut function to use the simplified auth
-
   const handleSignOut = async () => {
     if (confirm("Are you sure you want to sign out?")) {
       await signOut()
