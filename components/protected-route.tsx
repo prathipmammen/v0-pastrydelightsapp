@@ -11,18 +11,14 @@ interface ProtectedRouteProps {
 }
 
 export default function ProtectedRoute({ children }: ProtectedRouteProps) {
-  const { isAuthenticated, isPhoneVerified, isLoading } = useAuth()
+  const { isAuthenticated, isLoading } = useAuth()
   const router = useRouter()
 
   useEffect(() => {
-    if (!isLoading) {
-      if (!isAuthenticated) {
-        router.push("/login")
-      } else if (!isPhoneVerified) {
-        router.push("/verify-phone")
-      }
+    if (!isLoading && !isAuthenticated) {
+      router.push("/login")
     }
-  }, [isAuthenticated, isPhoneVerified, isLoading, router])
+  }, [isAuthenticated, isLoading, router])
 
   // Show loading state
   if (isLoading) {
@@ -37,7 +33,7 @@ export default function ProtectedRoute({ children }: ProtectedRouteProps) {
   }
 
   // Show nothing while redirecting
-  if (!isAuthenticated || !isPhoneVerified) {
+  if (!isAuthenticated) {
     return null
   }
 

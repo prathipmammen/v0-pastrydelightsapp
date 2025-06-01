@@ -7,23 +7,18 @@ import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { AlertCircle, Eye, EyeOff, Lock, Mail, Shield, Coffee, Cookie, Croissant } from "lucide-react"
+import { AlertCircle, Eye, EyeOff, Lock, User, Coffee, Cookie, Croissant } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
-import FaceIdAuth from "@/components/face-id-auth"
-import { getCredentialIdForUser } from "@/lib/webauthn"
 
 export default function LoginPage() {
-  const [email, setEmail] = useState("")
+  const [username, setUsername] = useState("")
   const [password, setPassword] = useState("")
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const { signIn, isAuthenticated, isPhoneVerified, failedAttempts, isLocked, lockoutTime } = useAuth()
+  const { signIn, isAuthenticated, failedAttempts, isLocked, lockoutTime } = useAuth()
   const router = useRouter()
-
-  const [showFaceId, setShowFaceId] = useState(false)
-  const [faceIdMessage, setFaceIdMessage] = useState("")
 
   // Animation mount effect
   useEffect(() => {
@@ -32,27 +27,10 @@ export default function LoginPage() {
 
   // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && isPhoneVerified) {
+    if (isAuthenticated) {
       router.push("/")
-    } else if (isAuthenticated && !isPhoneVerified) {
-      router.push("/verify-phone")
     }
-  }, [isAuthenticated, isPhoneVerified, router])
-
-  useEffect(() => {
-    const checkFaceIdAvailability = async () => {
-      if (email) {
-        const credentialId = getCredentialIdForUser(email)
-        if (credentialId) {
-          setShowFaceId(true)
-        }
-      }
-    }
-
-    if (email && !isAuthenticated) {
-      checkFaceIdAvailability()
-    }
-  }, [email, isAuthenticated])
+  }, [isAuthenticated, router])
 
   // Format lockout time
   const formatLockoutTime = (time: number) => {
@@ -60,15 +38,6 @@ export default function LoginPage() {
     const minutes = Math.floor(remaining / 60)
     const seconds = remaining % 60
     return `${minutes}:${seconds.toString().padStart(2, "0")}`
-  }
-
-  const handleFaceIdSuccess = () => {
-    setFaceIdMessage("Face ID authentication successful!")
-    // The auth state will be updated automatically
-  }
-
-  const handleFaceIdError = (error: string) => {
-    setFaceIdMessage(error)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -79,8 +48,8 @@ export default function LoginPage() {
       return
     }
 
-    if (!email || !password) {
-      setError("Please enter both email and password.")
+    if (!username || !password) {
+      setError("Please enter both username and password.")
       return
     }
 
@@ -88,7 +57,7 @@ export default function LoginPage() {
     setError("")
 
     try {
-      await signIn(email, password)
+      await signIn(username, password)
       // Redirect will happen automatically via useEffect
     } catch (error: any) {
       setError(error.message)
@@ -201,14 +170,16 @@ export default function LoginPage() {
               </CardHeader>
 
               <CardContent className="p-6 space-y-5 relative">
-                {/* Security Notice */}
+                {/* Demo Credentials Notice */}
                 <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/30 rounded-xl p-3 transform hover:scale-[1.02] transition-all duration-300 animate-slide-in backdrop-blur-sm">
                   <div className="flex items-center gap-2 mb-2">
-                    <Shield className="w-3 h-3 text-blue-600 animate-pulse" />
-                    <span className="text-xs font-semibold text-blue-800 tracking-wide">SECURE ACCESS</span>
+                    <User className="w-3 h-3 text-blue-600 animate-pulse" />
+                    <span className="text-xs font-semibold text-blue-800 tracking-wide">DEMO CREDENTIALS</span>
                   </div>
                   <p className="text-xs text-blue-700 leading-relaxed">
-                    Two-factor authentication required. Email verification followed by SMS verification.
+                    Username: <span className="font-mono font-semibold">dinudixon</span>
+                    <br />
+                    Password: <span className="font-mono font-semibold">Boost#1992</span>
                   </p>
                 </div>
 
@@ -239,21 +210,21 @@ export default function LoginPage() {
                 <form onSubmit={handleSubmit} className="space-y-4">
                   <div className="group">
                     <Label
-                      htmlFor="email"
+                      htmlFor="username"
                       className="text-amber-800 flex items-center gap-2 font-semibold text-xs tracking-wide uppercase"
                     >
-                      <Mail className="w-3 h-3 group-hover:text-amber-600 transition-colors duration-200" />
-                      Email Address
+                      <User className="w-3 h-3 group-hover:text-amber-600 transition-colors duration-200" />
+                      Username
                     </Label>
                     <Input
-                      id="email"
-                      type="email"
-                      value={email}
-                      onChange={(e) => setEmail(e.target.value)}
-                      placeholder="Enter your email"
+                      id="username"
+                      type="text"
+                      value={username}
+                      onChange={(e) => setUsername(e.target.value)}
+                      placeholder="Enter your username"
                       className="mt-2 border-amber-300/40 focus:border-amber-500 focus:ring-2 focus:ring-amber-200/50 transition-all duration-300 hover:border-amber-400 bg-white/90 backdrop-blur-sm rounded-xl h-11 text-sm"
                       disabled={isLocked || isLoading}
-                      autoComplete="email"
+                      autoComplete="username"
                     />
                   </div>
 
@@ -317,42 +288,10 @@ export default function LoginPage() {
                   </Button>
                 </form>
 
-                {/* Divider */}
-                {showFaceId && email && (
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-amber-300/30"></div>
-                    </div>
-                    <div className="relative flex justify-center text-xs uppercase">
-                      <span className="bg-white px-2 text-amber-600 font-medium">Or use biometric</span>
-                    </div>
-                  </div>
-                )}
-
-                {/* Face ID Authentication */}
-                {showFaceId && email && !isAuthenticated && (
-                  <div className="animate-slide-in">
-                    <FaceIdAuth
-                      userEmail={email}
-                      userName={email}
-                      onSuccess={handleFaceIdSuccess}
-                      onError={handleFaceIdError}
-                      mode="authenticate"
-                    />
-                  </div>
-                )}
-
-                {/* Face ID Message */}
-                {faceIdMessage && (
-                  <div className="bg-gradient-to-r from-blue-50/80 to-indigo-50/80 border border-blue-200/30 rounded-xl p-3 animate-slide-in backdrop-blur-sm">
-                    <p className="text-xs text-blue-800 text-center font-medium">{faceIdMessage}</p>
-                  </div>
-                )}
-
-                {/* Authorized Users Notice */}
+                {/* Session Info */}
                 <div className="bg-gradient-to-r from-amber-100/60 to-orange-100/60 border border-amber-300/30 rounded-xl p-3 hover:bg-gradient-to-r hover:from-amber-100/80 hover:to-orange-100/80 transition-all duration-300 backdrop-blur-sm">
                   <p className="text-xs text-amber-800 text-center font-semibold tracking-wide">
-                    🔒 AUTHORIZED ADMINISTRATORS ONLY
+                    🔒 Session expires after 24 hours
                   </p>
                 </div>
               </CardContent>
