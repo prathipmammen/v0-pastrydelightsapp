@@ -500,45 +500,45 @@ export default function CalendarPage() {
         <div
           className={`fixed z-50 ${
             isMobile
-              ? "bottom-0 left-0 right-0 max-h-[80vh] rounded-t-lg"
+              ? "bottom-0 left-0 right-0 max-h-[70vh] rounded-t-lg"
               : "top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-full max-w-md rounded-lg"
           } bg-white shadow-xl`}
         >
-          {/* Header */}
-          <div className="p-4 border-b border-gray-200">
+          {/* Compact Header */}
+          <div className="p-3 border-b border-gray-200">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-gray-900">{selectedDayDate}</h3>
+              <h3 className="text-base font-semibold text-gray-900 truncate">{selectedDayDate}</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={() => setShowDayModal(false)}
-                className="text-gray-500 hover:text-gray-700"
+                className="text-gray-500 hover:text-gray-700 p-1 h-8 w-8"
               >
                 ✕
               </Button>
             </div>
           </div>
 
-          {/* Content */}
-          <div className="p-4 max-h-96 overflow-y-auto">
+          {/* Compact Content */}
+          <div className="p-3 max-h-80 overflow-y-auto">
             {selectedDayOrders.length > 0 ? (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {selectedDayOrders
                   .sort((a, b) => a.deliveryTime.localeCompare(b.deliveryTime))
                   .map((order) => (
                     <div
                       key={order.id}
-                      className="p-3 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                      className="p-2 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
                     >
-                      <div className="flex items-start justify-between mb-2">
-                        <div className="flex-1">
-                          <div className="font-medium text-gray-900 text-sm">{order.customerName}</div>
+                      <div className="flex items-start justify-between mb-1">
+                        <div className="flex-1 min-w-0">
+                          <div className="font-medium text-gray-900 text-sm truncate">{order.customerName}</div>
                           <div className="text-gray-600 flex items-center gap-1 text-xs">
                             <Clock className="w-3 h-3" />
                             {formatTime(order.deliveryTime)}
                           </div>
                         </div>
-                        <div className="text-right">
+                        <div className="text-right ml-2">
                           <div className="font-medium text-gray-900 text-sm">${order.finalTotal.toFixed(2)}</div>
                           <Badge
                             className={`text-xs ${
@@ -560,7 +560,7 @@ export default function CalendarPage() {
                       <Button
                         size="sm"
                         variant="outline"
-                        className="w-full text-xs"
+                        className="w-full text-xs h-8"
                         onClick={() => {
                           handleViewOrder(order)
                           setShowDayModal(false)
@@ -572,9 +572,9 @@ export default function CalendarPage() {
                   ))}
               </div>
             ) : (
-              <div className="text-center text-gray-500 py-8">
-                <CalendarDayIcon className="w-12 h-12 mx-auto mb-4 text-gray-300" />
-                <p className="text-sm">No orders scheduled for this day.</p>
+              <div className="text-center text-gray-500 py-6">
+                <CalendarDayIcon className="w-10 h-10 mx-auto mb-2 text-gray-300" />
+                <p className="text-sm">No orders for this day</p>
               </div>
             )}
           </div>
@@ -583,12 +583,12 @@ export default function CalendarPage() {
     )
   }
 
+  // Mobile version - compact and touch-friendly
   if (isMobile) {
-    // Mobile version - simplified
     return (
       <ProtectedRoute>
         {/* Sign Out Button - Top Right */}
-        <div className="fixed top-4 right-4 z-50">
+        <div className="fixed top-2 right-2 z-50">
           <Button
             variant="outline"
             size="sm"
@@ -598,87 +598,86 @@ export default function CalendarPage() {
                 router.push("/login")
               })
             }}
-            className="bg-white hover:bg-gray-100 text-amber-700 border-amber-300 shadow-sm"
+            className="bg-white hover:bg-gray-100 text-amber-700 border-amber-300 shadow-sm text-xs px-2 py-1"
           >
-            <LogOut className="w-4 h-4 mr-2" />
-            Sign Out
+            <LogOut className="w-3 h-3 mr-1" />
+            Out
           </Button>
         </div>
-        <div className="min-h-screen bg-gray-50 p-4">
-          <div className="max-w-7xl mx-auto bg-white min-h-screen relative z-10">
-            {/* Statistics Bar */}
-            <div className="relative z-20 bg-gray-50 border-b border-gray-200 p-4">
-              <div className="grid grid-cols-2 gap-4 max-w-4xl mx-auto">
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-orange-600">{currentPeriodStats.totalOrders}</div>
-                  <div className="text-sm text-orange-600 font-medium">Orders</div>
+
+        <div className="min-h-screen bg-gray-50">
+          <div className="max-w-full mx-auto bg-white min-h-screen relative z-10">
+            {/* Compact Statistics Bar */}
+            <div className="relative z-20 bg-gradient-to-r from-amber-50 to-orange-50 border-b border-gray-200 p-2">
+              <div className="grid grid-cols-2 gap-2">
+                <div className="text-center bg-white rounded-lg p-2 shadow-sm">
+                  <div className="text-lg font-bold text-orange-600">{currentPeriodStats.totalOrders}</div>
+                  <div className="text-xs text-orange-600 font-medium">Orders</div>
                 </div>
-                <div className="text-center">
-                  <div className="text-2xl font-bold text-green-600">${currentPeriodStats.totalRevenue.toFixed(0)}</div>
-                  <div className="text-sm text-green-600 font-medium">Revenue</div>
+                <div className="text-center bg-white rounded-lg p-2 shadow-sm">
+                  <div className="text-lg font-bold text-green-600">${currentPeriodStats.totalRevenue.toFixed(0)}</div>
+                  <div className="text-xs text-green-600 font-medium">Revenue</div>
                 </div>
               </div>
             </div>
 
-            {/* Header */}
-            <div className="relative z-20 border-b border-gray-200 bg-white">
-              <div className="flex items-center justify-between p-4">
-                <div className="flex items-center gap-6">
-                  <h1 className="text-xl font-semibold text-gray-900">Order Calendar</h1>
+            {/* Compact Header */}
+            <div className="relative z-20 border-b border-gray-200 bg-white p-2">
+              <div className="flex items-center justify-between mb-2">
+                <h1 className="text-lg font-semibold text-gray-900">Calendar</h1>
 
-                  {/* View Mode Buttons - Touch Friendly */}
-                  <div className="flex bg-gray-100 rounded-lg p-1 gap-1">
-                    {(["Day", "Week", "Month", "Year"] as const).map((mode) => (
-                      <Button
-                        key={mode}
-                        variant={viewMode === mode ? "default" : "ghost"}
-                        size="sm"
-                        onClick={() => setViewMode(mode)}
-                        className={`flex-1 text-xs px-3 py-2 min-h-[36px] ${
-                          viewMode === mode
-                            ? "bg-white shadow-sm text-gray-900 font-semibold"
-                            : "text-gray-600 hover:text-gray-900 hover:bg-gray-200"
-                        }`}
-                      >
-                        {mode}
-                      </Button>
-                    ))}
-                  </div>
-                </div>
+                {/* Connection Status */}
+                <Badge
+                  className={`text-xs flex items-center gap-1 ${
+                    isConnected ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                  }`}
+                >
+                  {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
+                  {isConnected ? "Live" : "Off"}
+                </Badge>
+              </div>
 
-                {/* Search and Connection Status */}
-                <div className="flex items-center gap-4">
-                  <div className="relative">
-                    <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
-                    <Input
-                      placeholder="Search orders..."
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                      className="pl-10 w-32 text-sm border-gray-300"
-                    />
-                  </div>
-                  <Badge
-                    className={`text-xs flex items-center gap-1 ${
-                      isConnected ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+              {/* View Mode Buttons - Compact */}
+              <div className="flex bg-gray-100 rounded-lg p-0.5 gap-0.5 mb-2">
+                {(["Day", "Week", "Month", "Year"] as const).map((mode) => (
+                  <Button
+                    key={mode}
+                    variant={viewMode === mode ? "default" : "ghost"}
+                    size="sm"
+                    onClick={() => setViewMode(mode)}
+                    className={`flex-1 text-xs px-2 py-1.5 h-8 ${
+                      viewMode === mode
+                        ? "bg-white shadow-sm text-gray-900 font-semibold"
+                        : "text-gray-600 hover:text-gray-900 hover:bg-gray-200"
                     }`}
                   >
-                    {isConnected ? <Wifi className="w-3 h-3" /> : <WifiOff className="w-3 h-3" />}
-                    {isConnected ? "Live" : "Offline"}
-                  </Badge>
-                </div>
+                    {mode}
+                  </Button>
+                ))}
+              </div>
+
+              {/* Search - Compact */}
+              <div className="relative">
+                <Search className="w-3 h-3 absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-400" />
+                <Input
+                  placeholder="Search..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-7 h-8 text-xs border-gray-300"
+                />
               </div>
             </div>
 
-            {/* Period Navigation */}
-            <div className="relative z-20 border-b border-gray-200 bg-white">
-              <div className="flex items-center justify-between p-4">
-                <h2 className="text-2xl font-light text-gray-900">{getDisplayTitle()}</h2>
-                <div className="flex items-center gap-2">
+            {/* Compact Period Navigation */}
+            <div className="relative z-20 border-b border-gray-200 bg-white p-2">
+              <div className="flex items-center justify-between">
+                <h2 className="text-base font-medium text-gray-900 flex-1 truncate">{getDisplayTitle()}</h2>
+                <div className="flex items-center gap-1 ml-2">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => navigate("prev")}
-                    className="text-gray-600 hover:text-gray-900 p-2"
+                    className="text-gray-600 hover:text-gray-900 p-1 h-8 w-8"
                   >
                     <ChevronLeft className="w-4 h-4" />
                   </Button>
@@ -686,7 +685,7 @@ export default function CalendarPage() {
                     variant="outline"
                     size="sm"
                     onClick={goToToday}
-                    className="text-gray-700 border-gray-300 hover:bg-gray-50 px-4"
+                    className="text-gray-700 border-gray-300 hover:bg-gray-50 px-2 h-8 text-xs"
                   >
                     Today
                   </Button>
@@ -694,7 +693,7 @@ export default function CalendarPage() {
                     variant="ghost"
                     size="sm"
                     onClick={() => navigate("next")}
-                    className="text-gray-600 hover:text-gray-900 p-2"
+                    className="text-gray-600 hover:text-gray-900 p-1 h-8 w-8"
                   >
                     <ChevronRight className="w-4 h-4" />
                   </Button>
@@ -702,26 +701,191 @@ export default function CalendarPage() {
               </div>
             </div>
 
-            {/* Content Area */}
-            <div className="relative z-20">
-              {viewMode === "Day" && renderDayView()}
-              {viewMode === "Week" && renderWeekView()}
-              {viewMode === "Year" && renderYearView()}
+            {/* Content Area - Compact */}
+            <div className="relative z-20 pb-16">
+              {viewMode === "Day" && (
+                <div className="p-2">
+                  <div className="max-w-full mx-auto">
+                    {(() => {
+                      const dateKey = formatDateKey(currentDate)
+                      const dayOrders = filteredOrdersByDate[dateKey] || []
+
+                      return dayOrders.length > 0 ? (
+                        <div className="space-y-2">
+                          {dayOrders
+                            .sort((a, b) => a.deliveryTime.localeCompare(b.deliveryTime))
+                            .map((order) => (
+                              <Card
+                                key={order.id}
+                                className="hover:shadow-md transition-shadow cursor-pointer"
+                                onClick={() => handleViewOrder(order)}
+                              >
+                                <CardContent className="p-3">
+                                  <div className="flex items-start justify-between">
+                                    <div className="flex-1 min-w-0">
+                                      <div className="flex items-center gap-2 mb-1">
+                                        <div className="text-sm font-medium text-gray-900 truncate">
+                                          {order.customerName}
+                                        </div>
+                                        <Badge
+                                          className={`text-xs ${
+                                            order.paymentStatus === "PAID" || order.isPaid
+                                              ? "bg-green-100 text-green-800"
+                                              : "bg-red-100 text-red-800"
+                                          }`}
+                                        >
+                                          {order.paymentStatus === "PAID" || order.isPaid ? "Paid" : "Unpaid"}
+                                        </Badge>
+                                      </div>
+                                      <div className="text-xs text-gray-600 flex items-center gap-1 mb-1">
+                                        <Clock className="w-3 h-3" />
+                                        {formatTime(order.deliveryTime)}
+                                      </div>
+                                      <div className="text-xs text-gray-600 mb-2">
+                                        {order.items.length} items • ${order.finalTotal.toFixed(2)}
+                                      </div>
+                                      <div className="text-xs text-gray-500">
+                                        {order.items.slice(0, 2).map((item, index) => (
+                                          <div key={index} className="truncate">
+                                            {item.quantity}x {item.name}
+                                          </div>
+                                        ))}
+                                        {order.items.length > 2 && <div>+{order.items.length - 2} more</div>}
+                                      </div>
+                                    </div>
+                                  </div>
+                                </CardContent>
+                              </Card>
+                            ))}
+                        </div>
+                      ) : (
+                        <div className="text-center text-gray-500 py-8">
+                          <CalendarDayIcon className="w-12 h-12 mx-auto mb-2 text-gray-300" />
+                          <p className="text-sm">No orders today</p>
+                        </div>
+                      )
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {viewMode === "Week" && (
+                <div className="p-1">
+                  <div className="grid grid-cols-7 gap-1">
+                    {(() => {
+                      const startOfWeek = new Date(currentDate)
+                      startOfWeek.setDate(currentDate.getDate() - currentDate.getDay())
+                      const weekDays = []
+                      for (let i = 0; i < 7; i++) {
+                        const day = new Date(startOfWeek)
+                        day.setDate(startOfWeek.getDate() + i)
+                        weekDays.push(day)
+                      }
+
+                      return weekDays.map((day, index) => {
+                        const dateKey = formatDateKey(day)
+                        const dayOrders = filteredOrdersByDate[dateKey] || []
+                        const isCurrentDay = isToday(day)
+
+                        return (
+                          <div key={index} className="min-h-[120px] border border-gray-200 rounded p-1">
+                            <div className="text-center mb-1">
+                              <div className="text-xs font-medium text-gray-600">
+                                {day.toLocaleDateString("en-US", { weekday: "short" })}
+                              </div>
+                              <div
+                                className={`text-sm font-semibold ${
+                                  isCurrentDay
+                                    ? "bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center mx-auto text-xs"
+                                    : "text-gray-900"
+                                }`}
+                              >
+                                {day.getDate()}
+                              </div>
+                            </div>
+
+                            <div className="space-y-1">
+                              {dayOrders.slice(0, 3).map((order, orderIndex) => (
+                                <div
+                                  key={orderIndex}
+                                  className={`text-xs p-1 rounded text-white cursor-pointer hover:opacity-80 transition-opacity ${
+                                    order.paymentStatus === "PAID" || order.isPaid ? "bg-green-500" : "bg-red-500"
+                                  }`}
+                                  onClick={() => handleViewOrder(order)}
+                                >
+                                  <div className="font-medium truncate text-xs">{formatTime(order.deliveryTime)}</div>
+                                  <div className="truncate text-xs">{order.customerName}</div>
+                                </div>
+                              ))}
+                              {dayOrders.length > 3 && (
+                                <div className="text-xs text-gray-500 text-center">+{dayOrders.length - 3}</div>
+                              )}
+                            </div>
+                          </div>
+                        )
+                      })
+                    })()}
+                  </div>
+                </div>
+              )}
+
+              {viewMode === "Year" && (
+                <div className="p-2">
+                  <div className="grid grid-cols-3 gap-2">
+                    {(() => {
+                      const months = []
+                      for (let month = 0; month < 12; month++) {
+                        const monthDate = new Date(currentDate.getFullYear(), month, 1)
+                        const monthOrders = orders.filter((order) => {
+                          const orderDate = new Date(order.deliveryDate + "T00:00:00")
+                          return orderDate.getFullYear() === currentDate.getFullYear() && orderDate.getMonth() === month
+                        })
+
+                        months.push({
+                          date: monthDate,
+                          orders: monthOrders,
+                          revenue: monthOrders.reduce((sum, order) => sum + order.finalTotal, 0),
+                        })
+                      }
+
+                      return months.map((month, index) => (
+                        <Card
+                          key={index}
+                          className="hover:shadow-md transition-shadow cursor-pointer"
+                          onClick={() => {
+                            setCurrentDate(month.date)
+                            setViewMode("Month")
+                          }}
+                        >
+                          <CardContent className="p-2 text-center">
+                            <div className="text-sm font-semibold text-gray-900 mb-1">
+                              {month.date.toLocaleDateString("en-US", { month: "short" })}
+                            </div>
+                            <div className="text-xs text-gray-600">{month.orders.length} orders</div>
+                            <div className="text-xs font-medium text-green-600">${month.revenue.toFixed(0)}</div>
+                          </CardContent>
+                        </Card>
+                      ))
+                    })()}
+                  </div>
+                </div>
+              )}
+
               {viewMode === "Month" && (
-                <div className="p-4">
-                  {/* Day Headers */}
+                <div className="p-1">
+                  {/* Compact Day Headers */}
                   <div className="grid grid-cols-7 border-b border-gray-200 bg-gray-50">
-                    {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((day) => (
+                    {["S", "M", "T", "W", "T", "F", "S"].map((day) => (
                       <div
                         key={day}
-                        className="p-3 text-center text-sm font-semibold text-gray-700 border-r border-gray-200 last:border-r-0 min-h-[48px] flex items-center justify-center"
+                        className="p-1 text-center text-xs font-semibold text-gray-700 border-r border-gray-200 last:border-r-0 h-8 flex items-center justify-center"
                       >
                         {day}
                       </div>
                     ))}
                   </div>
 
-                  {/* Calendar Days */}
+                  {/* Compact Calendar Days */}
                   <div className="grid grid-cols-7 border-l border-gray-200">
                     {days.map((dayInfo, index) => {
                       const dateKey = formatDateKey(dayInfo.date)
@@ -733,47 +897,46 @@ export default function CalendarPage() {
                         <div
                           key={index}
                           className={`
-                            min-h-[120px] border-r border-b border-gray-200 p-2 cursor-pointer hover:bg-gray-50 transition-colors
+                            min-h-[80px] border-r border-b border-gray-200 p-1 cursor-pointer hover:bg-gray-50 transition-colors
                             ${isSelected ? "bg-blue-50 border-blue-200" : ""}
                             ${!dayInfo.isCurrentMonth ? "bg-gray-50" : "bg-white"}
                           `}
                           onClick={() => handleDateClick(dayInfo.date)}
                         >
-                          {/* Date Number */}
-                          <div className="flex justify-between items-start mb-2">
+                          {/* Compact Date Number */}
+                          <div className="flex justify-between items-start mb-1">
                             <span
                               className={`
-                                text-sm font-medium
-                                ${!dayInfo.isCurrentMonth ? "text-gray-400" : "text-gray-900"}
-                                ${isCurrentDay ? "bg-red-500 text-white rounded-full w-6 h-6 flex items-center justify-center text-xs" : ""}
-                              `}
+                            text-xs font-medium
+                            ${!dayInfo.isCurrentMonth ? "text-gray-400" : "text-gray-900"}
+                            ${isCurrentDay ? "bg-red-500 text-white rounded-full w-5 h-5 flex items-center justify-center text-xs" : ""}
+                          `}
                             >
                               {dayInfo.day}
                             </span>
                             {dayOrders.length > 0 && (
-                              <Badge className="bg-amber-100 text-amber-800 text-xs px-1.5 py-0">
+                              <Badge className="bg-amber-100 text-amber-800 text-xs px-1 py-0 h-4 min-w-[16px] flex items-center justify-center">
                                 {dayOrders.length}
                               </Badge>
                             )}
                           </div>
 
-                          {/* Orders for this day */}
-                          <div className="space-y-1">
+                          {/* Compact Orders */}
+                          <div className="space-y-0.5">
                             {dayOrders.slice(0, 2).map((order, orderIndex) => (
                               <div
                                 key={orderIndex}
                                 className={`
-                                  text-xs p-1 rounded text-white transition-opacity
-                                  ${order.paymentStatus === "PAID" || order.isPaid ? "bg-green-500" : "bg-red-500"}
-                                `}
+                              text-xs p-0.5 rounded text-white transition-opacity
+                              ${order.paymentStatus === "PAID" || order.isPaid ? "bg-green-500" : "bg-red-500"}
+                            `}
                               >
-                                <div className="font-medium truncate">
-                                  {formatTime(order.deliveryTime)} {order.customerName}
-                                </div>
+                                <div className="font-medium truncate text-xs">{formatTime(order.deliveryTime)}</div>
+                                <div className="truncate text-xs opacity-90">{order.customerName}</div>
                               </div>
                             ))}
                             {dayOrders.length > 2 && (
-                              <div className="text-xs text-gray-500 p-1">+{dayOrders.length - 2} more...</div>
+                              <div className="text-xs text-gray-500 text-center">+{dayOrders.length - 2}</div>
                             )}
                           </div>
                         </div>
@@ -784,50 +947,51 @@ export default function CalendarPage() {
               )}
             </div>
 
-            {/* Day Order Summary Modal */}
+            {/* Day Order Summary Modal - Compact */}
             <DayOrderSummaryModal />
-            {/* Navigation Footer - Mobile */}
-            <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-sm mt-4 sticky bottom-0 border-t border-gray-200">
-              <div className="p-4 flex justify-center w-full">
-                <div className="flex flex-wrap gap-0 w-full justify-between">
+
+            {/* Compact Navigation Footer */}
+            <div className="fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-sm border-t border-gray-200 z-30">
+              <div className="p-2 flex justify-center w-full">
+                <div className="flex gap-0 w-full max-w-sm">
                   <Button
                     variant="outline"
-                    className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg last:rounded-r-lg"
+                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg h-12"
                     onClick={() => router.push("/")}
                   >
                     <Plus className="w-3 h-3" />
-                    <span className="hidden sm:inline">Order</span>
+                    <span className="text-xs">Order</span>
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
+                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none h-12"
                     onClick={() => router.push("/receipt")}
                   >
                     <Receipt className="w-3 h-3" />
-                    <span className="hidden sm:inline">Receipt</span>
+                    <span className="text-xs">Receipt</span>
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none"
+                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none h-12"
                     onClick={() => router.push("/history")}
                   >
                     <History className="w-3 h-3" />
-                    <span className="hidden sm:inline">History</span>
+                    <span className="text-xs">History</span>
                   </Button>
                   <Button
                     variant="default"
-                    className="flex-1 flex items-center justify-center gap-2 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded-none"
+                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded-none h-12"
                   >
                     <CalendarIcon className="w-3 h-3" />
-                    <span className="hidden sm:inline">Calendar</span>
+                    <span className="text-xs">Calendar</span>
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1 flex items-center justify-center gap-2 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg last:rounded-r-lg"
+                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none last:rounded-r-lg h-12"
                     onClick={() => router.push("/trends")}
                   >
                     <TrendingUp className="w-3 h-3" />
-                    <span className="hidden sm:inline">Trends</span>
+                    <span className="text-xs">Trends</span>
                   </Button>
                 </div>
               </div>
