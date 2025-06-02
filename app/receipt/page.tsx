@@ -85,7 +85,7 @@ export default function ReceiptPage() {
         </div>
 
         <div className="min-h-screen flex items-center justify-center bg-amber-50">
-          <div className="text-center p-6 bg-white rounded-lg shadow-md max-w-md">
+          <div className="text-center p-6 bg-white rounded-lg shadow-md max-w-full sm:max-w-md mx-auto px-2 sm:px-0">
             <h2 className="text-xl font-bold text-amber-800 mb-2">No Receipt Available</h2>
             <p className="text-amber-600 mb-4">Please create an order first to view the receipt.</p>
             <Button

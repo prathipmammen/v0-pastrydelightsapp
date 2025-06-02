@@ -144,7 +144,7 @@ export default function Receipt({
                   <img src="/images/qr-code.png" alt="QR Code" className="w-12 h-12 object-contain" />
                 </div>
               </div>
-              <div className="mt-2 text-xs text-amber-600">
+              <div className="mt-2 text-xs sm:text-sm text-amber-600">
                 <div>Receipt ID: {receiptId}</div>
                 <div>
                   Generated: {new Date().toLocaleDateString()} at {new Date().toLocaleTimeString()}
@@ -153,11 +153,11 @@ export default function Receipt({
             </div>
 
             {/* Customer and Delivery Info - Side by Side */}
-            <div className="grid grid-cols-2 gap-3 mb-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
               {/* Customer Information */}
               <div className="bg-white p-3 rounded-lg border border-amber-200 print:border-gray-300">
                 <h4 className="font-semibold text-amber-800 mb-2 text-sm">Customer Information</h4>
-                <div className="space-y-1 text-xs">
+                <div className="space-y-1 text-xs sm:text-sm">
                   <div>
                     <span className="font-medium">Name:</span> {customerName}
                   </div>
@@ -170,7 +170,7 @@ export default function Receipt({
               {/* Delivery Details */}
               <div className="bg-white p-3 rounded-lg border border-amber-200 print:border-gray-300">
                 <h4 className="font-semibold text-amber-800 mb-2 text-sm">Delivery Details</h4>
-                <div className="space-y-1 text-xs">
+                <div className="space-y-1 text-xs sm:text-sm">
                   <div>
                     <span className="font-medium">Date:</span> {deliveryDate}
                   </div>
@@ -237,7 +237,7 @@ export default function Receipt({
               <h4 className="font-semibold text-amber-800 mb-3 text-sm">Items Ordered</h4>
               <div className="space-y-2">
                 {items.map((item, index) => (
-                  <div key={index} className="flex justify-between items-center text-xs">
+                  <div key={index} className="flex justify-between items-center text-xs sm:text-sm">
                     <div className="flex-1">
                       <div className="font-medium text-amber-800">{item.name}</div>
                       <div className="text-amber-600">{item.category}</div>
@@ -260,9 +260,9 @@ export default function Receipt({
 
               {/* Items breakdown - Compact */}
               <div className="space-y-1 mb-3">
-                <h5 className="font-medium text-amber-700 text-xs">Items Ordered:</h5>
+                <h5 className="font-medium text-amber-700 text-xs sm:text-sm">Items Ordered:</h5>
                 {items.map((item, index) => (
-                  <div key={index} className="flex justify-between text-xs bg-gray-50 p-1 rounded">
+                  <div key={index} className="flex justify-between text-xs sm:text-sm bg-gray-50 p-1 rounded">
                     <span className="truncate">
                       {item.quantity}x {item.name} ({item.category}) @ ${item.unitPrice.toFixed(2)}
                     </span>
@@ -274,7 +274,7 @@ export default function Receipt({
               <Separator className="my-2" />
 
               {/* Step-by-step calculations - Compact */}
-              <div className="space-y-1 text-xs">
+              <div className="space-y-1 text-xs sm:text-sm">
                 <div className="flex justify-between">
                   <span>1. Puff Subtotal:</span>
                   <span>${puffSubtotal.toFixed(2)}</span>
@@ -345,7 +345,7 @@ export default function Receipt({
                   }`}
                 >
                   <span
-                    className={`font-semibold text-xs flex items-center justify-center gap-1 ${
+                    className={`font-semibold text-xs sm:text-sm flex items-center justify-center gap-1 ${
                       isPaymentPaid ? "text-green-800" : "text-red-800"
                     }`}
                   >
@@ -367,8 +367,10 @@ export default function Receipt({
               {/* Delivery details if applicable - Compact */}
               {isDelivery && deliveryAddress && (
                 <div className="mt-3 p-2 bg-blue-50 rounded-lg border border-blue-200 print:bg-gray-100 print:border-gray-300">
-                  <h5 className="flex items-center gap-1 font-medium text-blue-800 mb-1 text-xs">🚚 Delivery Info:</h5>
-                  <div className="text-xs text-blue-700">
+                  <h5 className="flex items-center gap-1 font-medium text-blue-800 mb-1 text-xs sm:text-sm">
+                    🚚 Delivery Info:
+                  </h5>
+                  <div className="text-xs sm:text-sm text-blue-700">
                     <div>
                       <strong>Address:</strong> {deliveryAddress}
                     </div>
@@ -387,7 +389,7 @@ export default function Receipt({
                   <Gift className="w-4 h-4" />🎁 Rewards Summary
                 </h4>
 
-                <div className="space-y-2 text-xs">
+                <div className="space-y-2 text-xs sm:text-sm">
                   <div className="flex justify-between items-center">
                     <span className="text-purple-700">Starting Balance:</span>
                     <span className="font-medium">{previousBalance} points</span>
@@ -417,17 +419,17 @@ export default function Receipt({
                     <span className="font-bold text-purple-800">{customerRewardsBalance} points</span>
                   </div>
 
-                  <div className="text-center text-purple-600 text-xs mt-1">
+                  <div className="text-center text-purple-600 text-xs sm:text-sm mt-1">
                     {previousBalance} {pointsRedeemed > 0 ? `- ${pointsRedeemed}` : ""} + {pointsEarned} ={" "}
                     {customerRewardsBalance} points
                   </div>
 
-                  <div className="text-center text-purple-600 text-xs mt-2">
+                  <div className="text-center text-purple-600 text-xs sm:text-sm mt-2">
                     💡 Earn 1 point per $1 spent • Redeem 100 points for 10% off
                   </div>
 
                   {customerRewardsBalance >= 100 && (
-                    <div className="text-center bg-green-100 text-green-800 p-2 rounded text-xs font-medium">
+                    <div className="text-center bg-green-100 text-green-800 p-2 rounded text-xs sm:text-sm font-medium">
                       🎉 You can redeem 100 points for 10% off your next order!
                     </div>
                   )}
@@ -436,7 +438,7 @@ export default function Receipt({
             )}
 
             {/* Biblical Quote - Compact */}
-            <div className="text-center text-amber-600 italic text-xs border-t border-amber-200 pt-3 print:border-gray-300">
+            <div className="text-center text-amber-600 italic text-xs sm:text-sm border-t border-amber-200 pt-3 print:border-gray-300">
               <p>"The Lord bless you and keep you; the Lord makes His face shine on you and be gracious to you."</p>
               <p className="mt-1 font-medium">Numbers 6:24-25</p>
             </div>
