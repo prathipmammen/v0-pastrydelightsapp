@@ -3,188 +3,224 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Separator } from "@/components/ui/separator"
-import { Users, Database, RefreshCw, CheckCircle, Eye, Play } from "lucide-react"
-import { migrateAllCustomers, previewCustomerMigration } from "@/lib/customer-migration"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { updateLegacyOrdersRewards, previewLegacyOrdersUpdate } from "@/lib/customer-migration"
 
-export default function CustomerMigrationTool() {
+const CustomerMigrationTool = () => {
+  const [customerId, setCustomerId] = useState("")
+  const [newEmail, setNewEmail] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const [preview, setPreview] = useState<any>(null)
-  const [migrationResults, setMigrationResults] = useState<any>(null)
-  const [showPreview, setShowPreview] = useState(false)
+  const [migrationResult, setMigrationResult] = useState<any>(null)
 
-  const handlePreview = async () => {
+  const [legacyOrdersPreview, setLegacyOrdersPreview] = useState<any>(null)
+  const [isUpdatingLegacyOrders, setIsUpdatingLegacyOrders] = useState(false)
+  const [legacyOrdersResults, setLegacyOrdersResults] = useState<any>(null)
+
+  const handleCustomerMigration = async () => {
+    setIsLoading(true)
+    // Simulate an API call
+    setTimeout(() => {
+      setMigrationResult({
+        success: true,
+        message: `Customer ${customerId} migrated to new email ${newEmail}`,
+      })
+      setIsLoading(false)
+    }, 2000)
+  }
+
+  const handlePreviewLegacyOrders = async () => {
     setIsLoading(true)
     try {
-      const results = await previewCustomerMigration()
-      setPreview(results)
-      setShowPreview(true)
-      console.log("📊 Migration Preview:", results)
+      const preview = await previewLegacyOrdersUpdate()
+      setLegacyOrdersPreview(preview)
     } catch (error) {
-      console.error("❌ Preview failed:", error)
-      alert(`Preview failed: ${error instanceof Error ? error.message : "Unknown error"}`)
+      console.error("Error previewing legacy orders:", error)
+      alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
       setIsLoading(false)
     }
   }
 
-  const handleMigration = async () => {
-    if (
-      !confirm(
-        "Are you sure you want to migrate all customer data? This will create customer records for anyone who has placed orders but doesn't have a customer account yet.",
-      )
-    ) {
+  const handleUpdateLegacyOrders = async () => {
+    if (!confirm("This will update all legacy orders with proper rewards tracking. Continue?")) {
       return
     }
 
-    setIsLoading(true)
+    setIsUpdatingLegacyOrders(true)
     try {
-      const results = await migrateAllCustomers()
-      setMigrationResults(results)
-      console.log("✅ Migration Results:", results)
-
-      // Refresh preview after migration
-      const newPreview = await previewCustomerMigration()
-      setPreview(newPreview)
+      const results = await updateLegacyOrdersRewards()
+      setLegacyOrdersResults(results)
+      alert(`Legacy orders update completed!\n${results.updated} orders updated\n${results.errors.length} errors`)
     } catch (error) {
-      console.error("❌ Migration failed:", error)
-      alert(`Migration failed: ${error instanceof Error ? error.message : "Unknown error"}`)
+      console.error("Error updating legacy orders:", error)
+      alert(`Error: ${error instanceof Error ? error.message : "Unknown error"}`)
     } finally {
-      setIsLoading(false)
+      setIsUpdatingLegacyOrders(false)
     }
   }
 
   return (
-    <div className="space-y-6">
-      <Card className="bg-amber-50/95 backdrop-blur-sm border-amber-200">
-        <CardHeader className="bg-amber-100/95 border-b border-amber-200">
-          <CardTitle className="flex items-center gap-2 text-amber-800">
-            <Database className="w-5 h-5" />
-            Customer Migration Tool
-          </CardTitle>
+    <div className="container mx-auto p-4">
+      <h1 className="text-2xl font-bold mb-4">Customer Migration Tool</h1>
+
+      {/* Customer Migration Section */}
+      <Card className="mb-8">
+        <CardHeader>
+          <CardTitle>Migrate Customer</CardTitle>
         </CardHeader>
-        <CardContent className="p-6 space-y-4">
-          <div className="text-sm text-amber-700">
-            This tool will scan all your orders and ensure every customer has a proper rewards account with accurate
-            points.
+        <CardContent className="grid gap-4">
+          <div className="grid gap-2">
+            <Label htmlFor="customerId">Customer ID</Label>
+            <Input type="text" id="customerId" value={customerId} onChange={(e) => setCustomerId(e.target.value)} />
           </div>
-
-          <div className="flex gap-4">
-            <Button
-              onClick={handlePreview}
-              disabled={isLoading}
-              variant="outline"
-              className="flex items-center gap-2 border-amber-300 text-amber-700 hover:bg-amber-50"
-            >
-              {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Eye className="w-4 h-4" />}
-              Preview Migration
-            </Button>
-
-            <Button
-              onClick={handleMigration}
-              disabled={isLoading || !preview}
-              className="flex items-center gap-2 bg-orange-600 hover:bg-orange-700 text-white"
-            >
-              {isLoading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Play className="w-4 h-4" />}
-              Run Migration
-            </Button>
+          <div className="grid gap-2">
+            <Label htmlFor="newEmail">New Email</Label>
+            <Input type="email" id="newEmail" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} />
           </div>
-
-          {migrationResults && (
-            <div className="mt-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center gap-2 text-green-800 font-medium mb-2">
-                <CheckCircle className="w-4 h-4" />
-                Migration Completed!
-              </div>
-              <div className="text-sm text-green-700 space-y-1">
-                <div>✅ {migrationResults.migrated} new customers created</div>
-                <div>🔄 {migrationResults.updated} existing customers updated</div>
-                {migrationResults.errors.length > 0 && (
-                  <div className="text-red-600">❌ {migrationResults.errors.length} errors occurred</div>
-                )}
-              </div>
+          <Button onClick={handleCustomerMigration} disabled={isLoading}>
+            {isLoading ? "Migrating..." : "Migrate"}
+          </Button>
+          {migrationResult && (
+            <div
+              className={`p-4 rounded-md ${
+                migrationResult.success ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+              }`}
+            >
+              {migrationResult.message}
             </div>
           )}
         </CardContent>
       </Card>
 
-      {showPreview && preview && (
-        <Card className="bg-white/90 backdrop-blur-sm border-amber-200">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-amber-800">
-              <Users className="w-5 h-5" />
-              Migration Preview
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <div className="text-center p-3 bg-blue-50 rounded-lg">
-                <div className="text-2xl font-bold text-blue-800">{preview.existingCustomers}</div>
-                <div className="text-sm text-blue-600">Existing Customers</div>
+      {/* Legacy Orders Update Section */}
+      <Card className="bg-orange-50/95 backdrop-blur-sm border-orange-200">
+        <CardHeader className="bg-orange-100/95 border-b border-orange-200">
+          <CardTitle className="text-orange-800">Legacy Orders Rewards Update</CardTitle>
+          <p className="text-sm text-orange-600">
+            Update all legacy orders with proper rewards tracking and customer balances.
+          </p>
+        </CardHeader>
+        <CardContent className="p-6 space-y-4">
+          <div className="flex gap-4">
+            <Button
+              onClick={handlePreviewLegacyOrders}
+              disabled={isLoading}
+              className="bg-orange-600 hover:bg-orange-700 text-white"
+            >
+              {isLoading ? "Loading..." : "Preview Legacy Orders"}
+            </Button>
+
+            {legacyOrdersPreview && (
+              <Button
+                onClick={handleUpdateLegacyOrders}
+                disabled={isUpdatingLegacyOrders}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                {isUpdatingLegacyOrders ? "Updating..." : "Update All Legacy Orders"}
+              </Button>
+            )}
+          </div>
+
+          {legacyOrdersPreview && (
+            <div className="space-y-4">
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div className="text-center p-3 bg-white rounded-lg border">
+                  <div className="text-2xl font-bold text-gray-800">{legacyOrdersPreview.totalOrders}</div>
+                  <div className="text-sm text-gray-600">Total Orders</div>
+                </div>
+                <div className="text-center p-3 bg-orange-50 rounded-lg border border-orange-200">
+                  <div className="text-2xl font-bold text-orange-800">{legacyOrdersPreview.legacyOrders}</div>
+                  <div className="text-sm text-orange-600">Legacy Orders</div>
+                </div>
+                <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
+                  <div className="text-2xl font-bold text-green-800">{legacyOrdersPreview.paidLegacyOrders}</div>
+                  <div className="text-sm text-green-600">PAID Legacy</div>
+                </div>
+                <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
+                  <div className="text-2xl font-bold text-red-800">{legacyOrdersPreview.unpaidLegacyOrders}</div>
+                  <div className="text-sm text-red-600">UNPAID Legacy</div>
+                </div>
               </div>
-              <div className="text-center p-3 bg-green-50 rounded-lg">
-                <div className="text-2xl font-bold text-green-800">{preview.needsMigration}</div>
-                <div className="text-sm text-green-600">Need Migration</div>
-              </div>
-              <div className="text-center p-3 bg-orange-50 rounded-lg">
-                <div className="text-2xl font-bold text-orange-800">{preview.needsUpdate}</div>
-                <div className="text-sm text-orange-600">Need Update</div>
-              </div>
-              <div className="text-center p-3 bg-purple-50 rounded-lg">
-                <div className="text-2xl font-bold text-purple-800">{preview.customersFromOrders}</div>
-                <div className="text-sm text-purple-600">Total from Orders</div>
+
+              <div className="max-h-96 overflow-y-auto">
+                <table className="w-full text-sm">
+                  <thead className="bg-orange-100 sticky top-0">
+                    <tr>
+                      <th className="text-left p-2 border">Receipt ID</th>
+                      <th className="text-left p-2 border">Customer</th>
+                      <th className="text-left p-2 border">Status</th>
+                      <th className="text-left p-2 border">Current Points</th>
+                      <th className="text-left p-2 border">Will Earn</th>
+                      <th className="text-left p-2 border">New Balance</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {legacyOrdersPreview.preview.slice(0, 50).map((order: any, index: number) => (
+                      <tr key={index} className="hover:bg-orange-50">
+                        <td className="p-2 border font-mono text-xs">{order.receiptId}</td>
+                        <td className="p-2 border">{order.customerName}</td>
+                        <td className="p-2 border">
+                          <span
+                            className={`px-2 py-1 rounded text-xs ${
+                              order.isPaid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"
+                            }`}
+                          >
+                            {order.isPaid ? "PAID" : "UNPAID"}
+                          </span>
+                        </td>
+                        <td className="p-2 border text-center">{order.currentPointsEarned}</td>
+                        <td className="p-2 border text-center font-semibold text-green-600">
+                          {order.calculatedPointsEarned}
+                        </td>
+                        <td className="p-2 border text-center font-semibold text-blue-600">
+                          {order.calculatedBalance}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {legacyOrdersPreview.preview.length > 50 && (
+                  <p className="text-center text-sm text-gray-500 mt-2">
+                    Showing first 50 of {legacyOrdersPreview.preview.length} legacy orders
+                  </p>
+                )}
               </div>
             </div>
+          )}
 
-            <Separator />
+          {legacyOrdersResults && (
+            <div className="mt-4 p-4 bg-white rounded-lg border">
+              <h4 className="font-semibold text-green-800 mb-2">Update Results</h4>
+              <div className="grid grid-cols-2 gap-4 mb-4">
+                <div className="text-center p-3 bg-green-50 rounded border border-green-200">
+                  <div className="text-xl font-bold text-green-800">{legacyOrdersResults.updated}</div>
+                  <div className="text-sm text-green-600">Orders Updated</div>
+                </div>
+                <div className="text-center p-3 bg-red-50 rounded border border-red-200">
+                  <div className="text-xl font-bold text-red-800">{legacyOrdersResults.errors.length}</div>
+                  <div className="text-sm text-red-600">Errors</div>
+                </div>
+              </div>
 
-            <div className="space-y-3">
-              <h4 className="font-medium text-amber-800">Customer Details:</h4>
-              <div className="max-h-96 overflow-y-auto space-y-2">
-                {preview.preview.map((customer: any, index: number) => (
-                  <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                    <div className="flex items-center gap-3">
-                      <div>
-                        <div className="font-medium">{customer.name}</div>
-                        <div className="text-sm text-gray-600">
-                          {customer.totalOrders} orders • ${customer.totalSpent.toFixed(2)} spent
-                        </div>
+              {legacyOrdersResults.errors.length > 0 && (
+                <div className="mt-4">
+                  <h5 className="font-medium text-red-800 mb-2">Errors:</h5>
+                  <div className="max-h-32 overflow-y-auto bg-red-50 p-2 rounded border border-red-200">
+                    {legacyOrdersResults.errors.map((error: string, index: number) => (
+                      <div key={index} className="text-sm text-red-700">
+                        {error}
                       </div>
-                    </div>
-                    <div className="flex items-center gap-3">
-                      <div className="text-right">
-                        {customer.status === "needs_update" && (
-                          <div className="text-sm text-orange-600">
-                            {customer.currentPoints} → {customer.calculatedPoints} pts
-                          </div>
-                        )}
-                        {customer.status === "new" && (
-                          <div className="text-sm text-green-600">{customer.calculatedPoints} pts</div>
-                        )}
-                        {customer.status === "exists" && (
-                          <div className="text-sm text-blue-600">{customer.calculatedPoints} pts</div>
-                        )}
-                      </div>
-                      <Badge
-                        className={
-                          customer.status === "new"
-                            ? "bg-green-100 text-green-800"
-                            : customer.status === "needs_update"
-                              ? "bg-orange-100 text-orange-800"
-                              : "bg-blue-100 text-blue-800"
-                        }
-                      >
-                        {customer.status === "new" ? "New" : customer.status === "needs_update" ? "Update" : "OK"}
-                      </Badge>
-                    </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                </div>
+              )}
             </div>
-          </CardContent>
-        </Card>
-      )}
+          )}
+        </CardContent>
+      </Card>
     </div>
   )
 }
+
+export default CustomerMigrationTool

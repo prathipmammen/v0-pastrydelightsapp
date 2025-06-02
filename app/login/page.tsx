@@ -9,7 +9,6 @@ import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { AlertCircle, Eye, EyeOff, Lock, User, Coffee, Cookie, Croissant } from "lucide-react"
 import { useAuth } from "@/lib/auth-context"
-import Image from "next/image"
 
 export default function LoginPage() {
   const [username, setUsername] = useState("")
@@ -18,7 +17,7 @@ export default function LoginPage() {
   const [error, setError] = useState("")
   const [isLoading, setIsLoading] = useState(false)
   const [mounted, setMounted] = useState(false)
-  const { login, isAuthenticated, shouldShowWelcomeVideo } = useAuth()
+  const { login, isAuthenticated } = useAuth()
   const router = useRouter()
 
   // Animation mount effect
@@ -26,12 +25,12 @@ export default function LoginPage() {
     setMounted(true)
   }, [])
 
-  // Redirect if already authenticated (but not if welcome video should show)
+  // Redirect if already authenticated
   useEffect(() => {
-    if (isAuthenticated && !shouldShowWelcomeVideo) {
+    if (isAuthenticated) {
       router.push("/")
     }
-  }, [isAuthenticated, shouldShowWelcomeVideo, router])
+  }, [isAuthenticated, router])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -106,13 +105,11 @@ export default function LoginPage() {
         >
           {/* Logo */}
           <div className="flex justify-center mb-6">
-            <div className="w-32 h-32 relative">
-              <Image
-                src="/images/pd-logo-infinity.png"
+            <div className="w-24 h-24 relative">
+              <img
+                src="/images/pd-logo-transparent.png"
                 alt="Pastry Delights Logo"
-                width={128}
-                height={128}
-                className="object-contain"
+                className="w-full h-full object-contain"
               />
             </div>
           </div>

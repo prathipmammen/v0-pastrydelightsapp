@@ -203,14 +203,8 @@ export default function HistoryPage() {
 
     setIsUpdatingPayment(order.id)
     try {
-      // Update payment status
       await updatePaymentStatus(order.id, newStatus)
-
-      // Update rewards based on payment status
-      const { updateOrderRewards } = await import("@/lib/firestore")
-      await updateOrderRewards(order.id, newStatus === "PAID", order.finalTotal)
-
-      console.log("✅ Payment status and rewards updated successfully")
+      console.log("✅ Payment status updated successfully")
       // The real-time listener will automatically update the UI
     } catch (error) {
       console.error("❌ Error updating payment status:", error)
@@ -266,20 +260,6 @@ export default function HistoryPage() {
       icon: isPaid ? "🟢" : "🔴",
       className: isPaid ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800",
     }
-  }
-
-  // Helper function to calculate customer's total points from PAID orders
-  const getCustomerTotalPoints = (customerName: string): number => {
-    return orders
-      .filter((order) => {
-        const isPaid = order.paymentStatus === "PAID" || order.isPaid
-        return order.customerName === customerName && isPaid
-      })
-      .reduce((total, order) => {
-        const pointsEarned = order.pointsEarned || Math.floor(order.finalTotal)
-        const pointsRedeemed = order.pointsRedeemed || 0
-        return total + pointsEarned - pointsRedeemed
-      }, 0)
   }
 
   return (
@@ -437,6 +417,50 @@ export default function HistoryPage() {
                 </div>
               </div>
 
+              {/* Customer Summary - Show when filtering by specific customer */}
+              {customerNameFilter &&
+                filteredOrders.length > 0 &&
+                (() => {
+                  // Calculate total points for this customer from PAID orders only
+                  const customerOrders = filteredOrders.filter((order) =>
+                    order.customerName.toLowerCase().includes(customerNameFilter.toLowerCase()),
+                  )
+
+                  if (customerOrders.length > 0) {
+                    const customerName = customerOrders[0].customerName
+                    const totalPointsEarned = customerOrders
+                      .filter((order) => order.paymentStatus === "PAID" || order.isPaid)
+                      .reduce((sum, order) => sum + (order.pointsEarned || Math.floor(order.finalTotal)), 0)
+
+                    const totalPointsRedeemed = customerOrders.reduce(
+                      (sum, order) => sum + (order.pointsRedeemed || 0),
+                      0,
+                    )
+
+                    const currentBalance = Math.max(0, totalPointsEarned - totalPointsRedeemed)
+
+                    return (
+                      <Card className="bg-purple-50/95 backdrop-blur-sm border-purple-200 mb-4">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="font-semibold text-purple-800">{customerName}</h3>
+                              <p className="text-sm text-purple-600">Customer Reward Summary</p>
+                            </div>
+                            <div className="text-right">
+                              <div className="text-2xl font-bold text-purple-800">{currentBalance} pts</div>
+                              <div className="text-xs text-purple-600">
+                                {totalPointsEarned} earned • {totalPointsRedeemed} redeemed
+                              </div>
+                            </div>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    )
+                  }
+                  return null
+                })()}
+
               {/* Pagination Info */}
               {filteredOrders.length > 0 && (
                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2 text-sm text-amber-700">
@@ -479,9 +503,6 @@ export default function HistoryPage() {
                                 <span className="font-semibold text-amber-800 text-sm sm:text-base">
                                   Receipt #{order.receiptId}
                                 </span>
-                                {!paymentDisplay.isPaid && (
-                                  <Badge className="bg-yellow-100 text-yellow-800 text-xs">pending</Badge>
-                                )}
 
                                 {/* Payment Status Badge with Toggle */}
                                 <div className="flex items-center gap-2">
@@ -543,45 +564,56 @@ export default function HistoryPage() {
                                 )}
                               </div>
 
-                              {/* Rewards info - Moved below order details, simplified */}
-                              <div className="mt-3 p-3 bg-purple-50 rounded-lg border border-purple-200">
-                                <div className="text-sm text-purple-700">
-                                  <strong>Rewards:</strong>
-                                  {/* Only show earned points if order is PAID */}
-                                  {paymentDisplay.isPaid ? (
-                                    order.pointsEarned > 0 ? (
-                                      <span className="text-green-600"> +{order.pointsEarned} earned</span>
-                                    ) : (
-                                      <span className="text-green-600"> +{Math.floor(order.finalTotal)} earned</span>
-                                    )
-                                  ) : (
-                                    <span className="text-orange-600">
-                                      {" "}
-                                      +{Math.floor(order.finalTotal)} pending payment
-                                    </span>
-                                  )}
+                              {/* Rewards info - Only show for PAID orders */}
+                              {(() => {
+                                const paymentDisplay = getPaymentStatusDisplay(order)
+                                const isPaid = paymentDisplay.isPaid
 
-                                  {/* Show redeemed points if any */}
-                                  {order.pointsRedeemed > 0 && paymentDisplay.isPaid && (
-                                    <span className="text-red-600"> -{order.pointsRedeemed} redeemed</span>
-                                  )}
-
-                                  {/* Show customer's current balance */}
-                                  {order.customerRewardsBalance > 0 ? (
-                                    <span> • Balance: {order.customerRewardsBalance} pts</span>
-                                  ) : (
-                                    <span className="text-gray-600">
-                                      {" "}
-                                      • Balance: {getCustomerTotalPoints(order.customerName)} pts
-                                    </span>
-                                  )}
-
-                                  {/* Status indicators - simplified */}
-                                  {!paymentDisplay.isPaid && (
-                                    <span className="text-orange-600 ml-2">(⏳ Points pending payment)</span>
-                                  )}
-                                </div>
-                              </div>
+                                if (isPaid) {
+                                  // Show rewards for PAID orders
+                                  return (
+                                    <div className="mt-2 p-2 bg-purple-50 rounded border border-purple-200">
+                                      <div className="text-xs text-purple-700">
+                                        <strong>Rewards:</strong>
+                                        {order.pointsEarned > 0 ? (
+                                          <span className="text-green-600"> +{order.pointsEarned} earned</span>
+                                        ) : (
+                                          <span className="text-green-600">
+                                            {" "}
+                                            +{Math.floor(order.finalTotal)} earned
+                                          </span>
+                                        )}
+                                        {order.pointsRedeemed > 0 && (
+                                          <span className="text-red-600"> -{order.pointsRedeemed} redeemed</span>
+                                        )}
+                                        {order.customerRewardsBalance > 0 ? (
+                                          <span> • Balance: {order.customerRewardsBalance} pts</span>
+                                        ) : (
+                                          <span className="text-gray-600"> • Balance: Not tracked</span>
+                                        )}
+                                        {(!order.pointsEarned || order.pointsEarned === 0) && (
+                                          <span className="text-orange-600 ml-2">
+                                            (Legacy order - run migration to update)
+                                          </span>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )
+                                } else {
+                                  // Show "no rewards yet" for UNPAID orders
+                                  return (
+                                    <div className="mt-2 p-2 bg-gray-50 rounded border border-gray-200">
+                                      <div className="text-xs text-gray-600">
+                                        <strong>Rewards:</strong>
+                                        <span className="text-orange-600">
+                                          {" "}
+                                          Payment required to earn +{Math.floor(order.finalTotal)} points
+                                        </span>
+                                      </div>
+                                    </div>
+                                  )
+                                }
+                              })()}
                             </div>
 
                             <div className="text-center lg:text-right space-y-3">

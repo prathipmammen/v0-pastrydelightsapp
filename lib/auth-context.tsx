@@ -13,8 +13,6 @@ interface AuthContextType {
   login: (username: string, password: string) => Promise<void>
   signOut: () => Promise<void>
   isLoading: boolean
-  shouldShowWelcomeVideo: boolean
-  completeWelcomeVideo: () => void
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined)
@@ -31,7 +29,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [isLoading, setIsLoading] = useState(true)
   const [failedAttempts, setFailedAttempts] = useState(0)
   const [lockoutUntil, setLockoutUntil] = useState<number | null>(null)
-  const [shouldShowWelcomeVideo, setShouldShowWelcomeVideo] = useState(false)
 
   useEffect(() => {
     // Check for existing session
@@ -90,13 +87,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
       setUser(userData)
 
-      // Only show welcome video for new sessions (not returning users)
-      const hasSeenWelcome = localStorage.getItem("pastry-delights-welcome-seen")
-      if (!hasSeenWelcome) {
-        setShouldShowWelcomeVideo(true)
-        localStorage.setItem("pastry-delights-welcome-seen", "true")
-      }
-
       // Store session (24 hours)
       const sessionExpiry = Date.now() + 24 * 60 * 60 * 1000
       localStorage.setItem("pastry-delights-user", JSON.stringify(userData))
@@ -125,16 +115,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   }
 
-  const completeWelcomeVideo = () => {
-    setShouldShowWelcomeVideo(false)
-  }
-
   const signOut = async (): Promise<void> => {
     setUser(null)
     localStorage.removeItem("pastry-delights-user")
     localStorage.removeItem("pastry-delights-session-expiry")
-    // Reset welcome video for next login
-    localStorage.removeItem("pastry-delights-welcome-seen")
   }
 
   const value: AuthContextType = {
@@ -143,8 +127,6 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     login,
     signOut,
     isLoading,
-    shouldShowWelcomeVideo,
-    completeWelcomeVideo,
   }
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
