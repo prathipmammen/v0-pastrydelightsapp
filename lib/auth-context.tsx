@@ -89,7 +89,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       }
 
       setUser(userData)
-      setShouldShowWelcomeVideo(true)
+
+      // Only show welcome video for new sessions (not returning users)
+      const hasSeenWelcome = localStorage.getItem("pastry-delights-welcome-seen")
+      if (!hasSeenWelcome) {
+        setShouldShowWelcomeVideo(true)
+        localStorage.setItem("pastry-delights-welcome-seen", "true")
+      }
 
       // Store session (24 hours)
       const sessionExpiry = Date.now() + 24 * 60 * 60 * 1000
@@ -127,6 +133,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null)
     localStorage.removeItem("pastry-delights-user")
     localStorage.removeItem("pastry-delights-session-expiry")
+    // Reset welcome video for next login
+    localStorage.removeItem("pastry-delights-welcome-seen")
   }
 
   const value: AuthContextType = {
