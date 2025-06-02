@@ -37,10 +37,11 @@ import { subscribeToOrders, type FirestoreOrder } from "@/lib/firestore"
 import { Badge } from "@/components/ui/badge"
 import DateRangePicker, { type DateRange } from "@/components/date-range-picker"
 import ProtectedRoute from "@/components/protected-route"
-import { getAuth, signOut } from "firebase/auth"
+import { useAuth } from "@/lib/auth-context"
 
 export default function TrendsPage() {
   const router = useRouter()
+  const { signOut } = useAuth()
   const [orders, setOrders] = useState<FirestoreOrder[]>([])
   const [isConnected, setIsConnected] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -295,11 +296,13 @@ export default function TrendsPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => {
-            const auth = getAuth()
-            signOut(auth).then(() => {
+          onClick={async () => {
+            try {
+              await signOut()
               router.push("/login")
-            })
+            } catch (error) {
+              console.error("Error signing out:", error)
+            }
           }}
           className="bg-white hover:bg-gray-100 text-amber-700 border-amber-300 shadow-sm"
         >

@@ -6,7 +6,7 @@ import { useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import ProtectedRoute from "@/components/protected-route"
 import { LogOut } from "lucide-react"
-import { getAuth, signOut } from "firebase/auth"
+import { useAuth } from "@/lib/auth-context"
 
 interface OrderData {
   receiptId: string
@@ -44,6 +44,7 @@ interface OrderData {
 export default function ReceiptPage() {
   const [orderData, setOrderData] = useState<OrderData | null>(null)
   const router = useRouter()
+  const { signOut } = useAuth()
 
   useEffect(() => {
     // Get order data from localStorage
@@ -60,8 +61,7 @@ export default function ReceiptPage() {
 
   const handleSignOut = async () => {
     try {
-      const auth = getAuth()
-      await signOut(auth)
+      await signOut()
       router.push("/login")
     } catch (error) {
       console.error("Error signing out:", error)

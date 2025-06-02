@@ -25,7 +25,7 @@ import {
 import { subscribeToOrders, type FirestoreOrder } from "@/lib/firestore"
 import { useMediaQuery } from "@/hooks/use-media-query"
 import ProtectedRoute from "@/components/protected-route"
-import { getAuth, signOut } from "firebase/auth"
+import { useAuth } from "@/lib/auth-context"
 
 export default function CalendarPage() {
   const router = useRouter()
@@ -41,6 +41,8 @@ export default function CalendarPage() {
   const [showDayModal, setShowDayModal] = useState(false)
   const [selectedDayOrders, setSelectedDayOrders] = useState<FirestoreOrder[]>([])
   const [selectedDayDate, setSelectedDayDate] = useState<string>("")
+
+  const { signOut } = useAuth()
 
   useEffect(() => {
     console.log("🔄 Setting up Firestore real-time listener for calendar...")
@@ -583,6 +585,15 @@ export default function CalendarPage() {
     )
   }
 
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      router.push("/login")
+    } catch (error) {
+      console.error("Error signing out:", error)
+    }
+  }
+
   // Mobile version - compact and touch-friendly
   if (isMobile) {
     return (
@@ -592,12 +603,7 @@ export default function CalendarPage() {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => {
-              const auth = getAuth()
-              signOut(auth).then(() => {
-                router.push("/login")
-              })
-            }}
+            onClick={handleSignOut}
             className="bg-white hover:bg-gray-100 text-amber-700 border-amber-300 shadow-sm text-xs px-2 py-1"
           >
             <LogOut className="w-3 h-3 mr-1" />
@@ -1010,12 +1016,7 @@ export default function CalendarPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => {
-            const auth = getAuth()
-            signOut(auth).then(() => {
-              router.push("/login")
-            })
-          }}
+          onClick={handleSignOut}
           className="bg-white hover:bg-gray-100 text-amber-700 border-amber-300 shadow-sm"
         >
           <LogOut className="w-4 h-4 mr-2" />
