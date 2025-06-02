@@ -1,7 +1,8 @@
 import type React from "react"
 import type { Metadata } from "next"
 import "./globals.css"
-import ClientLayout from "./clientLayout"
+import { AuthProvider } from "@/lib/auth-context"
+import ClientLayout from "./client-layout"
 
 export const metadata: Metadata = {
   title: "v0 App",
@@ -17,7 +18,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body>
-        <ClientLayout>{children}</ClientLayout>
+        <AuthProvider>
+          <ClientLayout>{children}</ClientLayout>
+        </AuthProvider>
       </body>
     </html>
   )
