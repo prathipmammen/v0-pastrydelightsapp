@@ -183,7 +183,7 @@ export default function DateRangePicker({ value, onChange, className }: DateRang
           </Button>
         </PopoverTrigger>
 
-        <PopoverContent className="w-auto p-0 shadow-lg border-amber-200" align="start">
+        <PopoverContent className="w-full sm:w-auto p-0 shadow-lg border-amber-200" align="start">
           <div className="flex flex-col sm:flex-row">
             {/* Preset Options */}
             <div className="p-4 border-b sm:border-b-0 sm:border-r border-gray-200 bg-gray-50">
@@ -195,7 +195,7 @@ export default function DateRangePicker({ value, onChange, className }: DateRang
                     variant="ghost"
                     size="sm"
                     className={cn(
-                      "w-full justify-start text-sm",
+                      "w-full justify-start text-sm h-11",
                       selectedPreset === preset.label
                         ? "bg-amber-100 text-amber-800 hover:bg-amber-200"
                         : "hover:bg-gray-100",
@@ -247,7 +247,7 @@ export default function DateRangePicker({ value, onChange, className }: DateRang
                       key={index}
                       onClick={() => handleDateClick(day)}
                       className={cn(
-                        "p-1 h-8 text-xs rounded transition-colors",
+                        "p-1 h-10 w-10 text-xs rounded transition-colors flex items-center justify-center",
                         isSelected
                           ? "bg-amber-600 text-white"
                           : isInRange

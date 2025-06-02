@@ -349,7 +349,7 @@ export default function EditOrderPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 p-2 sm:p-4">
+    <div className="min-h-screen bg-gray-50 p-4">
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="bg-white rounded-lg shadow-sm mb-6">
@@ -382,7 +382,7 @@ export default function EditOrderPage() {
               <h3 className="flex items-center gap-2 text-lg font-semibold text-amber-800 mb-4">
                 <span>👤</span> Customer Details
               </h3>
-              <div className="grid grid-cols-1 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="customerName" className="text-amber-800">
                     Customer Name *
@@ -437,7 +437,7 @@ export default function EditOrderPage() {
                 <Calendar className="w-5 h-5" />
                 Pickup Details
               </h3>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <Label htmlFor="pickupDate" className="text-amber-800">
                     Pickup Date *
@@ -486,7 +486,7 @@ export default function EditOrderPage() {
                 </div>
 
                 {deliveryRequired.includes("Delivery") && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-amber-100 rounded-lg">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 p-4 bg-amber-100 rounded-lg">
                     <div>
                       <Label className="text-amber-800">Delivery Fee</Label>
                       <Input value={deliveryFee} onChange={(e) => setDeliveryFee(e.target.value)} className="mt-1" />
@@ -521,7 +521,7 @@ export default function EditOrderPage() {
             {puffItems.map((item) => (
               <div
                 key={item.id}
-                className="grid grid-cols-1 sm:grid-cols-12 gap-3 sm:gap-4 items-end p-3 sm:p-4 bg-white rounded-lg border border-amber-200"
+                className="grid grid-cols-12 gap-4 items-end p-4 bg-white rounded-lg border border-amber-200"
               >
                 <div className="col-span-2">
                   <Label className="text-amber-800">Category</Label>

@@ -7,7 +7,6 @@ import { Input } from "@/components/ui/input"
 import { Badge } from "@/components/ui/badge"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { useRouter } from "next/navigation"
-import { getAuth, signOut } from "firebase/auth"
 import {
   LogOut,
   Plus,
@@ -35,11 +34,13 @@ import {
   exportOrdersToCSV,
 } from "@/lib/firestore"
 import ProtectedRoute from "@/components/protected-route"
+import { useAuth } from "@/lib/auth-context"
 
 const ORDERS_PER_PAGE = 10
 
 export default function HistoryPage() {
   const router = useRouter()
+  const { signOut } = useAuth()
   const [customerNameFilter, setCustomerNameFilter] = useState("")
   const [contactFilter, setContactFilter] = useState("")
   const [receiptIdFilter, setReceiptIdFilter] = useState("")
@@ -144,15 +145,6 @@ export default function HistoryPage() {
   const startIndex = (currentPage - 1) * ORDERS_PER_PAGE
   const endIndex = startIndex + ORDERS_PER_PAGE
   const currentPageOrders = filteredOrders.slice(startIndex, endIndex)
-
-  // Calculate statistics for current page
-  const currentPageStats = useMemo(() => {
-    const totalItems = currentPageOrders.reduce((sum, order) => sum + order.items.length, 0)
-    const totalRevenue = currentPageOrders.reduce((sum, order) => sum + order.finalTotal, 0)
-    const paidOrders = currentPageOrders.filter((order) => order.paymentStatus === "PAID" || order.isPaid).length
-    const unpaidOrders = currentPageOrders.length - paidOrders
-    return { totalItems, totalRevenue, paidOrders, unpaidOrders }
-  }, [currentPageOrders])
 
   // Calculate statistics for all filtered orders
   const allFilteredStats = useMemo(() => {
@@ -262,6 +254,15 @@ export default function HistoryPage() {
     }
   }
 
+  const handleSignOut = async () => {
+    try {
+      await signOut()
+      router.push("/login")
+    } catch (error) {
+      console.error("Error signing out:", error)
+    }
+  }
+
   return (
     <ProtectedRoute>
       {/* Sign Out Button - Top Right */}
@@ -269,12 +270,7 @@ export default function HistoryPage() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => {
-            const auth = getAuth()
-            signOut(auth).then(() => {
-              router.push("/login")
-            })
-          }}
+          onClick={handleSignOut}
           className="bg-white hover:bg-gray-100 text-amber-700 border-amber-300 shadow-sm"
         >
           <LogOut className="w-4 h-4 mr-2" />
@@ -340,7 +336,7 @@ export default function HistoryPage() {
                   </span>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
                   <div>
                     <label className="block text-xs sm:text-sm font-medium text-amber-700 mb-1">Customer Name</label>
                     <Input
@@ -688,7 +684,7 @@ export default function HistoryPage() {
                       size="sm"
                       onClick={handlePreviousPage}
                       disabled={currentPage === 1}
-                      className="flex items-center gap-1 border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+                      className="flex items-center gap-1 border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 min-h-[44px] min-w-[44px]"
                     >
                       <ChevronLeft className="w-4 h-4" />
                       <span className="hidden sm:inline">Previous</span>
@@ -703,8 +699,8 @@ export default function HistoryPage() {
                           onClick={() => handlePageClick(page)}
                           className={
                             currentPage === page
-                              ? "bg-amber-600 hover:bg-amber-700 text-white"
-                              : "border-amber-300 text-amber-700 hover:bg-amber-50"
+                              ? "bg-amber-600 hover:bg-amber-700 text-white min-h-[44px] min-w-[44px]"
+                              : "border-amber-300 text-amber-700 hover:bg-amber-50 min-h-[44px] min-w-[44px]"
                           }
                         >
                           {page}
@@ -717,7 +713,7 @@ export default function HistoryPage() {
                       size="sm"
                       onClick={handleNextPage}
                       disabled={currentPage === totalPages}
-                      className="flex items-center gap-1 border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50"
+                      className="flex items-center gap-1 border-amber-300 text-amber-700 hover:bg-amber-50 disabled:opacity-50 min-h-[44px] min-w-[44px]"
                     >
                       <span className="hidden sm:inline">Next</span>
                       <ChevronRight className="w-4 h-4" />
@@ -738,49 +734,10 @@ export default function HistoryPage() {
               {/* Enhanced Summary Stats with Payment Status */}
               {orders.length > 0 && (
                 <div className="space-y-4 mt-8 pt-6 border-t border-amber-200">
-                  {/* Current Page Stats */}
-                  {currentPageOrders.length > 0 && totalPages > 1 && (
-                    <div>
-                      <h4 className="text-sm font-medium text-amber-800 mb-3">Current Page Statistics</h4>
-                      <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
-                        <div className="text-center p-3 bg-white/90 rounded-lg border border-amber-200">
-                          <div className="text-lg sm:text-xl font-bold text-amber-800">{currentPageOrders.length}</div>
-                          <div className="text-xs sm:text-sm text-amber-600">Orders on Page</div>
-                        </div>
-                        <div className="text-center p-3 bg-white/90 rounded-lg border border-amber-200">
-                          <div className="text-lg sm:text-xl font-bold text-green-800">
-                            {currentPageStats.totalItems}
-                          </div>
-                          <div className="text-xs sm:text-sm text-green-600">Items on Page</div>
-                        </div>
-                        <div className="text-center p-3 bg-white/90 rounded-lg border border-amber-200">
-                          <div className="text-lg sm:text-xl font-bold text-blue-800">
-                            ${currentPageStats.totalRevenue.toFixed(2)}
-                          </div>
-                          <div className="text-xs sm:text-sm text-blue-600">Revenue on Page</div>
-                        </div>
-                        <div className="text-center p-3 bg-green-50 rounded-lg border border-green-200">
-                          <div className="text-lg sm:text-xl font-bold text-green-800 flex items-center justify-center gap-1">
-                            🟢 {currentPageStats.paidOrders}
-                          </div>
-                          <div className="text-xs sm:text-sm text-green-600">PAID Orders</div>
-                        </div>
-                        <div className="text-center p-3 bg-red-50 rounded-lg border border-red-200">
-                          <div className="text-lg sm:text-xl font-bold text-red-800 flex items-center justify-center gap-1">
-                            🔴 {currentPageStats.unpaidOrders}
-                          </div>
-                          <div className="text-xs sm:text-sm text-red-600">UNPAID Orders</div>
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
                   {/* Overall Stats */}
                   <div>
-                    <h4 className="text-sm font-medium text-amber-800 mb-3">
-                      {filteredOrders.length < orders.length ? "Filtered Results" : "Overall Statistics"}
-                    </h4>
-                    <div className="grid grid-cols-2 sm:grid-cols-5 gap-4">
+                    <h4 className="text-sm font-medium text-amber-800 mb-3">Overall Statistics</h4>
+                    <div className="grid grid-cols-1 xs:grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2 sm:gap-4">
                       <div className="text-center p-4 bg-white/90 rounded-lg border border-amber-200">
                         <div className="text-xl sm:text-2xl font-bold text-amber-800">{filteredOrders.length}</div>
                         <div className="text-xs sm:text-sm text-amber-600">

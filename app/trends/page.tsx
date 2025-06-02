@@ -308,7 +308,7 @@ export default function TrendsPage() {
         </Button>
       </div>
       <div
-        className="min-h-screen p-1 sm:p-4 flex flex-col"
+        className="min-h-screen p-2 sm:p-4 flex flex-col"
         style={{
           backgroundImage: "url('/images/pastry-background.png')",
           backgroundSize: "cover",
@@ -367,7 +367,7 @@ export default function TrendsPage() {
 
             <CardContent className="p-4 sm:p-6">
               {/* Key Metrics */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
+              <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
                 <Card className="bg-amber-100/90 border-amber-300">
                   <CardContent className="p-3 sm:p-4 text-center">
                     <div className="text-xl sm:text-3xl font-bold text-amber-800">{totalOrders}</div>
@@ -395,7 +395,7 @@ export default function TrendsPage() {
               </div>
 
               {/* New KPI Cards */}
-              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
+              <div className="grid grid-cols-1 xs:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 sm:mb-8">
                 <Card className="bg-orange-100/90 border-orange-300">
                   <CardContent className="p-3 sm:p-4 text-center">
                     <div className="text-xl sm:text-3xl font-bold text-orange-800">${averageOrderValue.toFixed(2)}</div>
@@ -445,9 +445,9 @@ export default function TrendsPage() {
                       </CardTitle>
                     </CardHeader>
                     <CardContent>
-                      <div className="h-64 sm:h-96">
+                      <div className="h-48 sm:h-64 lg:h-96">
                         <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
+                          <BarChart data={chartData} margin={{ top: 10, right: 15, left: 15, bottom: 30 }}>
                             <CartesianGrid strokeDasharray="3 3" stroke="#f3f4f6" opacity={0.7} />
                             <XAxis
                               dataKey="month"
@@ -497,9 +497,9 @@ export default function TrendsPage() {
                         <CardTitle className="text-amber-800 text-base sm:text-lg">Order Count</CardTitle>
                       </CardHeader>
                       <CardContent>
-                        <div className="h-48 sm:h-64">
+                        <div className="h-48 sm:h-64 lg:h-96">
                           <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={chartData} margin={{ top: 20, right: 30, left: 20, bottom: 40 }}>
+                            <LineChart data={chartData} margin={{ top: 10, right: 15, left: 15, bottom: 30 }}>
                               <CartesianGrid strokeDasharray="3 3" stroke="#e0e0e0" />
                               <XAxis
                                 dataKey="month"
@@ -648,7 +648,7 @@ export default function TrendsPage() {
                               key={customerName}
                               className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                             >
-                              <div className="flex items-center gap-2 sm:gap-3 flex-1">
+                              <div className="flex items-center gap-2 sm:gap-3 flex-1 overflow-x-auto">
                                 <div
                                   className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm"
                                   style={{
@@ -695,7 +695,7 @@ export default function TrendsPage() {
                   <Card className="bg-white/90">
                     <CardHeader>
                       <div
-                        className="flex items-center justify-between cursor-pointer"
+                        className="flex items-center justify-between cursor-pointer p-2"
                         onClick={() => setIsTopItemsExpanded(!isTopItemsExpanded)}
                       >
                         <CardTitle className="text-amber-800 text-base sm:text-lg">
@@ -719,7 +719,7 @@ export default function TrendsPage() {
                                 key={itemName}
                                 className="flex items-center justify-between p-3 bg-gray-50 rounded-lg"
                               >
-                                <div className="flex items-center gap-2 sm:gap-3 flex-1">
+                                <div className="flex items-center gap-2 sm:gap-3 flex-1 overflow-x-auto">
                                   <div
                                     className="w-6 h-6 sm:w-8 sm:h-8 rounded-full flex items-center justify-center text-white font-bold text-xs sm:text-sm"
                                     style={{ backgroundColor: pdAmberColor }}
@@ -760,7 +760,7 @@ export default function TrendsPage() {
         {/* Navigation Footer - Always at bottom */}
         <div className="bg-white/95 backdrop-blur-sm rounded-lg shadow-sm mt-4 sm:mt-6 sticky bottom-0">
           <div className="p-4 sm:p-6 flex justify-center w-full">
-            <div className="flex flex-wrap gap-2 w-full justify-between">
+            <div className="flex flex-wrap gap-0 w-full justify-between">
               <Button
                 variant="outline"
                 className="flex-1 flex items-center justify-center gap-2 text-xs sm:text-sm border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg last:rounded-r-lg"

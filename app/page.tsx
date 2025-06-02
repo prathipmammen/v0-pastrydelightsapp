@@ -475,9 +475,11 @@ export default function PastryOrderSystem() {
   }
 
   const handleSignOut = async () => {
-    if (confirm("Are you sure you want to sign out?")) {
+    try {
       await signOut()
       router.push("/login")
+    } catch (error) {
+      console.error("Error signing out:", error)
     }
   }
 
@@ -526,7 +528,7 @@ export default function PastryOrderSystem() {
                 <h3 className="flex items-center gap-2 text-base sm:text-lg font-semibold text-amber-800 mb-4">
                   <span>👤</span> Customer Details
                 </h3>
-                <div className="grid grid-cols-1 gap-3">
+                <div className="grid grid-cols-1 gap-4">
                   <div>
                     <Label htmlFor="customerName" className="text-amber-800 text-sm flex items-center gap-2">
                       Customer Name *
@@ -755,7 +757,7 @@ export default function PastryOrderSystem() {
                   <Calendar className="w-4 h-4 sm:w-5 sm:h-5" />
                   Pickup Details
                 </h3>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div>
                     <Label htmlFor="pickupDate" className="text-amber-800 text-sm">
                       Pickup Date *
@@ -804,7 +806,7 @@ export default function PastryOrderSystem() {
                   </div>
 
                   {deliveryRequired.includes("Delivery") && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-4 p-3 sm:p-4 bg-amber-100/80 rounded-lg">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 p-4 bg-amber-100/80 rounded-lg">
                       <div>
                         <Label className="text-amber-800 text-sm">Delivery Fee</Label>
                         <Input value={deliveryFee} onChange={(e) => setDeliveryFee(e.target.value)} className="mt-1" />
@@ -836,10 +838,7 @@ export default function PastryOrderSystem() {
 
               {/* Puff Items */}
               {puffItems.map((item) => (
-                <div
-                  key={item.id}
-                  className="p-3 sm:p-4 bg-white/90 rounded-lg border border-amber-200 space-y-3 sm:space-y-4"
-                >
+                <div key={item.id} className="p-4 bg-white/90 rounded-lg border border-amber-200 space-y-4">
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <Label className="text-amber-800 text-sm">Category</Label>
@@ -895,7 +894,7 @@ export default function PastryOrderSystem() {
                     </div>
                   </div>
 
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 items-end">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 items-end">
                     <div>
                       <Label className="text-amber-800 text-sm">Price</Label>
                       {item.category && !item.type && (
@@ -946,7 +945,7 @@ export default function PastryOrderSystem() {
                       </div>
                     </div>
 
-                    <div className="col-span-1">
+                    <div className="col-span-2 sm:col-span-1">
                       <Button
                         size="sm"
                         variant="outline"
@@ -974,7 +973,7 @@ export default function PastryOrderSystem() {
 
               {/* Enhanced Final Order Summary with detailed calculations */}
               {puffItems.length > 0 && (
-                <div className="p-3 sm:p-6 rounded-lg border border-amber-200">
+                <div className="bg-white/90 p-4 sm:p-6 rounded-lg border border-amber-200">
                   <h3 className="flex items-center gap-2 text-base sm:text-lg font-semibold text-amber-800 mb-4 sm:mb-6">
                     📋 Order Calculation Breakdown
                   </h3>
@@ -1117,7 +1116,7 @@ export default function PastryOrderSystem() {
               )}
 
               {/* Payment Method, Payment Status, and Discount */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                 <div>
                   <Label className="text-amber-800 text-sm">Payment Method *</Label>
                   <Select value={paymentMethod} onValueChange={setPaymentMethod}>

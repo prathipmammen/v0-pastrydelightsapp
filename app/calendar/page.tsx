@@ -645,7 +645,7 @@ export default function CalendarPage() {
                     variant={viewMode === mode ? "default" : "ghost"}
                     size="sm"
                     onClick={() => setViewMode(mode)}
-                    className={`flex-1 text-xs px-2 py-1.5 h-11 min-w-[44px] min-h-[44px] flex items-center justify-center ${
+                    className={`flex-1 text-xs px-2 py-1.5 h-8 ${
                       viewMode === mode
                         ? "bg-white shadow-sm text-gray-900 font-semibold"
                         : "text-gray-600 hover:text-gray-900 hover:bg-gray-200"
@@ -956,7 +956,7 @@ export default function CalendarPage() {
                 <div className="flex gap-0 w-full max-w-sm">
                   <Button
                     variant="outline"
-                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg h-12 min-w-[44px] min-h-[44px]"
+                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none first:rounded-l-lg h-12"
                     onClick={() => router.push("/")}
                   >
                     <Plus className="w-3 h-3" />
@@ -964,7 +964,7 @@ export default function CalendarPage() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none h-12 min-w-[44px] min-h-[44px]"
+                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none h-12"
                     onClick={() => router.push("/receipt")}
                   >
                     <Receipt className="w-3 h-3" />
@@ -972,7 +972,7 @@ export default function CalendarPage() {
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none h-12 min-w-[44px] min-h-[44px]"
+                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none h-12"
                     onClick={() => router.push("/history")}
                   >
                     <History className="w-3 h-3" />
@@ -980,14 +980,14 @@ export default function CalendarPage() {
                   </Button>
                   <Button
                     variant="default"
-                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded-none h-12 min-w-[44px] min-h-[44px]"
+                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs bg-amber-600 hover:bg-amber-700 text-white rounded-none h-12"
                   >
                     <CalendarIcon className="w-3 h-3" />
                     <span className="text-xs">Calendar</span>
                   </Button>
                   <Button
                     variant="outline"
-                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none last:rounded-r-lg h-12 min-w-[44px] min-h-[44px]"
+                    className="flex-1 flex flex-col items-center justify-center gap-1 text-xs border-amber-300 text-amber-700 hover:bg-amber-50 rounded-none last:rounded-r-lg h-12"
                     onClick={() => router.push("/trends")}
                   >
                     <TrendingUp className="w-3 h-3" />
